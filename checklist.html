@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S파트 과업 체크리스트</title>
+<style>
+  :root{
+    --bg:#FAFAF8; --card:#FFFFFF; --border:#E4E2DA; --text:#2C2C2A; --text-sub:#6B6A64;
+    --accent:#7CAEE8;
+    --success:#F28FB0; --success-strong:#E85D8C; --success-bg:#FDEAF1; --success-text:#B23B69;
+    --prep-strong:#8D8B82; --prep-bg:#EDEBE1; --prep-text:#5F5D55;
+    --qc-strong:#8177DA; --qc-bg:#E4E1FB; --qc-text:#4A3FA0;
+    --after-strong:#4E86C9; --after-bg:#DCEBFA; --after-text:#2E5F94;
+    --settle-strong:#C79233; --settle-bg:#F7E7C8; --settle-text:#8A5F17;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:18px 16px 40px; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    line-height:1.45;
+  }
+  .wrap{max-width:600px; margin:0 auto;}
+  h1{font-size:16px; font-weight:600; text-align:center; margin:0 0 2px;}
+  .sub{font-size:11.5px; color:var(--text-sub); text-align:center; margin:0 0 14px;}
+
+  .task-form{ margin-bottom:12px; }
+  .task-form input{
+    padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px;
+    font-family:inherit; background:var(--card); color:var(--text); width:100%;
+  }
+  .task-form > input{ margin-bottom:8px; }
+  .task-form-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .field{ display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+  .field-label{ font-size:10px; color:var(--text-sub); padding-left:2px; }
+
+  .qc-assignees{ margin-bottom:14px; }
+  .qc-assignee-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;
+    padding:8px 10px; background:var(--card); border:1.5px solid var(--border); border-radius:8px;
+  }
+  .qc-cat-label{ font-size:11.5px; font-weight:600; flex-shrink:0; width:66px; }
+  .chip-list{ display:flex; flex-wrap:wrap; gap:5px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:4px; background:#EEEDFE; color:#3C3489;
+    border-radius:20px; padding:2px 4px 2px 9px; font-size:11px; white-space:nowrap;
+  }
+  .chip button{ background:none; border:none; color:#3C3489; cursor:pointer; font-size:12px; padding:0 4px; line-height:1.4; }
+  .chip-input{
+    border:none; background:transparent; font-size:12px; flex:1; min-width:90px; outline:none;
+    font-family:inherit; color:var(--text); padding:2px 0;
+  }
+
+  .progress-wrap{ margin-bottom:12px; }
+  .progress-label{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-sub); margin-bottom:5px; }
+  .progress-bar{ height:8px; background:#EDEBE3; border-radius:5px; overflow:hidden; }
+  .progress-fill{ height:100%; background:var(--accent); border-radius:5px; transition:width .2s; width:0%; }
+
+  #completeBanner{
+    display:none; text-align:center; background:var(--success-bg); color:var(--success-text);
+    border:1.5px solid var(--success-strong); border-radius:10px; padding:10px 14px; font-size:13px;
+    font-weight:600; margin-bottom:14px;
+  }
+  #completeBanner.show{ display:block; }
+
+  .global-actions{ display:flex; gap:8px; margin-bottom:14px; }
+  .global-btn{
+    flex:1; padding:7px 10px; border:1.5px solid var(--border); border-radius:8px; background:var(--card);
+    font-size:12px; cursor:pointer; color:var(--text-sub);
+  }
+  .global-btn:hover{ background:#F1EFE8; }
+  .global-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  .section{ background:var(--card); border:1.5px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden; transition:border-color .15s, background-color .15s; }
+
+  .section-head{ display:flex; align-items:center; justify-content:space-between; padding:11px 14px; cursor:pointer; user-select:none; gap:8px; transition:background-color .15s; }
+  .section-head:hover{ background:#FAFAF8; }
+  .section-title{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; flex-wrap:wrap; min-width:0; }
+  .section-count{ font-size:11px; color:var(--text-sub); font-weight:400; transition:color .15s; }
+  .section-right{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .select-all-btn{
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    font-size:13px; background:none; border:1.5px solid var(--border); border-radius:6px;
+    cursor:pointer; color:var(--text-sub); padding:0; transition:background-color .15s, border-color .15s;
+  }
+  .select-all-btn:hover{ background:#F1EFE8; }
+  .select-all-btn.all-checked{ color:#fff; }
+  .section-chev{ font-size:11px; color:var(--text-sub); transition:transform .15s; flex-shrink:0; }
+  .section.collapsed .section-chev{ transform:rotate(-90deg); }
+  .section-body{ padding:0 14px 12px; }
+  .section.collapsed .section-body{ display:none; }
+
+  .phase-tag{ font-size:9.5px; padding:1px 7px; border-radius:20px; font-weight:500; background:#F1EFE8; color:#5F5E5A; }
+  .phase-tag.qc{ background:#EEEDFE; color:#3C3489; }
+  .phase-tag.after{ background:#E6F1FB; color:#185FA5; }
+  .phase-tag.settle{ background:#FAEEDA; color:#854F0B; }
+  .opt-badge{ font-size:9px; padding:1px 6px; border-radius:20px; background:#FAEEDA; color:#854F0B; font-weight:500; }
+
+  .item-wrap{ padding:5px 0; }
+  .item{ display:flex; align-items:flex-start; gap:6px; font-size:13px; }
+  .item input[type="checkbox"]{ margin-top:2px; width:15px; height:15px; flex-shrink:0; cursor:pointer; accent-color:var(--accent); }
+  .item label{ cursor:pointer; flex:1; }
+  .item.checked label{ color:var(--text-sub); text-decoration:line-through; }
+  .item.excluded{ opacity:.45; }
+  .item.excluded label{ text-decoration:line-through; }
+  .item.excluded input[type="checkbox"]{ pointer-events:none; }
+
+  .memo-btn, .excl-btn{
+    flex-shrink:0; font-size:10.5px; background:none; border:1px solid var(--border); border-radius:20px;
+    cursor:pointer; color:var(--text-sub); white-space:nowrap; margin-top:1px;
+  }
+  .memo-btn{ width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:6px; padding:0; font-size:12px; }
+  .memo-btn:hover, .excl-btn:hover{ background:#F1EFE8; }
+  .memo-btn.has-memo{ background:#EEEDFE; color:#3C3489; border-color:#9C93EA; }
+  .excl-btn{ padding:2px 8px; }
+
+  .memo-input{
+    display:none; width:calc(100% - 21px); margin:5px 0 0 21px; padding:5px 9px; font-size:11.5px;
+    border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text);
+    font-family:inherit;
+  }
+  .item-wrap.memo-open .memo-input{ display:block; }
+  .memo-input:focus{ outline:none; border-color:var(--accent); }
+
+  .footer-actions{ display:flex; justify-content:center; gap:8px; margin-top:18px; }
+  .reset-btn{ padding:8px 16px; border:1.5px solid var(--border); border-radius:8px; background:var(--card); font-size:12px; cursor:pointer; color:#993C1D; }
+  .reset-btn:hover{ background:#FAECE7; }
+  .history-btn{ padding:8px 16px; border:1.5px solid var(--border); border-radius:8px; background:var(--card); font-size:12px; cursor:pointer; color:var(--text-sub); }
+  .history-btn:hover{ background:#F1EFE8; }
+
+  #historyPanel{ display:none; margin-top:14px; }
+  #historyPanel.open{ display:block; }
+  .history-item{ background:var(--card); border:1.5px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:8px; }
+  .history-item .hi-top{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:3px; }
+  .history-item .hi-date{ font-size:10.5px; color:var(--text-sub); margin-top:2px; }
+  .history-item .hi-score{ font-size:11.5px; color:var(--text-sub); }
+  .history-empty{ font-size:12px; color:var(--text-sub); text-align:center; padding:12px 0; }
+  .clear-history{ text-align:center; margin-top:6px; }
+  .clear-history button{ font-size:11px; background:none; border:none; color:#993C1D; cursor:pointer; text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>S파트 과업 체크리스트</h1>
+  <p class="sub">해당 없는 항목은 제외, 메모는 ✎ 버튼으로, 파트 완료 시 초록색으로 표시돼요</p>
+
+  <div class="task-form">
+    <input type="text" id="taskName" placeholder="과업명 (예: 코레일유통_서류심사)">
+    <div class="task-form-row">
+      <div class="field"><span class="field-label">담당자</span><input type="text" id="taskOwner" placeholder="예: 상구"></div>
+      <div class="field"><span class="field-label">단가</span><input type="text" id="taskRate" placeholder="예: 3,000원/인, 충전계약"></div>
+    </div>
+    <div class="task-form-row">
+      <div class="field"><span class="field-label">서류 마감일</span><input type="date" id="taskDeadline"></div>
+      <div class="field"><span class="field-label">납품일</span><input type="date" id="taskDelivery"></div>
+    </div>
+  </div>
+
+  <div class="qc-assignees" id="qcAssignees"></div>
+
+  <div id="completeBanner">🎉 모든 항목 완료 — 과업 종료 가능</div>
+
+  <div class="progress-wrap">
+    <div class="progress-label"><span>전체 진행률 (제외 항목 미포함)</span><span id="progressText">0 / 0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="global-actions">
+    <button class="global-btn" id="globalCheckBtn">전체 체크</button>
+    <button class="global-btn" id="expandAllBtn">모두 접기</button>
+  </div>
+
+  <div id="sections"></div>
+
+  <div class="footer-actions">
+    <button class="history-btn" id="historyBtn">지난 기록 보기</button>
+    <button class="reset-btn" id="resetBtn">완료 · 기록 저장하고 초기화</button>
+  </div>
+
+  <div id="historyPanel"></div>
+</div>
+
+<script>
+const sections = [
+  { id:"s1", tag:"준비", tagClass:"", title:"1. 심사 기준 전달받기", items:[
+    { t:"심사 기준 문서 확보 (자사명 인정범위 포함, 구체적일수록 좋음)" },
+    { t:"기준이 모호한 부분 없는지 확인" }
+  ]},
+  { id:"s2", tag:"준비", tagClass:"", title:"2. 과업 내용 공유 (4곳 동시)", items:[
+    { t:"Google 매출관리 스프레드시트 기록" },
+    { t:"Slack #10-findeet-s(-sales) 채널 공유" },
+    { t:"Notion 'Findeet-S 프로젝트 관리'에 등록" },
+    { t:"Google 캘린더 등록 (기관명_예상인원, 마감일~납품일)" }
+  ]},
+  { id:"s3", tag:"준비", tagClass:"", title:"3. OP 작업 요청", items:[
+    { t:"raw data 컬럼명 표준화 (수험번호/성명/자기소개서1,2...)" },
+    { t:"특수공백(nbsp) 제거" },
+    { t:"자사명 오기재(MON) input data 준비" },
+    { t:"신규 기관이면 진행 전 담당자에게 확인 요청", opt:true },
+    { t:"OP 자동화 사이트 업로드 및 검출 실행" },
+    { t:"결과파일 전체 다운로드" }
+  ]},
+  { id:"s4", tag:"준비", tagClass:"", title:"4. Setting 파일 생성", items:[
+    { t:"raw data → setting 양식으로 이관" },
+    { t:"AI심사결과 시트(완성도·객관도) 세팅" },
+    { t:"표절심사 시트(유사도) 세팅", opt:true },
+    { t:"COUNTIF 함수 범위를 지원자 수에 맞게 수정" },
+    { t:"자소서 문항에 맞춰 컬럼 세팅" }
+  ]},
+  { id:"s5", tag:"QC", tagClass:"qc", title:"5. 검토(QC) — 순서 준수 필수", items:[
+    { t:"① 글자수$RS$RW 검토" },
+    { t:"② 지원자내(반복문장) 검토" },
+    { t:"③ 불성실문장 검토" },
+    { t:"④ 자사명오기재(MON) 검토" },
+    { t:"⑤ 타기업지원(AOC) 검토" },
+    { t:"⑥ NER Tagging 검토" },
+    { t:"⑦ Extra 검토" },
+    { t:"⑧ 블라인드(성명/연령/성별/지역/학교/가족/혼인/종교/신체/경력 등) 검토" },
+    { t:"⑨ 표절(지원자간/인딥DB/WEB/GPT) 검토", opt:true },
+    { t:"색상 코드 확인 (빨강=완성도, 파랑=객관도)" }
+  ]},
+  { id:"s6", tag:"QC", tagClass:"qc", title:"6. 취합", items:[
+    { t:"교차검증(자사명·타기업·블라인드) 결과 반영" },
+    { t:"하이라이팅 최종 완성 (검출단어 앞뒤 공백 컬러링 안 되게 주의)" }
+  ]},
+  { id:"s7", tag:"QC", tagClass:"qc", title:"7. 업로드 양식 파일 생성", items:[
+    { t:"Agency명_기관명_채용내용 형식으로 파일명 작성" },
+    { t:"Deepselect 업로드 양식에 맞춰 편집" }
+  ]},
+  { id:"s8", tag:"QC", tagClass:"qc", title:"8. tag 작업 및 오류수정", items:[
+    { t:"교차검증 완료된 setting파일로 태깅 실행" },
+    { t:";RW;RW / ;RS;RS 중복 태그 확인" },
+    { t:";MON;MON / ;AOC;AOC 중복 태그 확인" },
+    { t:";UNK 태그 확인 → 발견 시 수정" },
+    { t:"PDF 생성 (요청 있을 때만, 모든 QC 완료 후 진행)", opt:true },
+    { t:"PDF용 이중 태그 확인 (하나는 삭제 후 전달)", opt:true }
+  ]},
+  { id:"s9", tag:"업로드", tagClass:"after", title:"9. 업로드", items:[
+    { t:"신규 기관이면 계정 먼저 생성", opt:true },
+    { t:"스테이징(staging) 업로드 및 결과 확인" },
+    { t:"본서버(www.deepselect.net) 업로드" }
+  ]},
+  { id:"s10", tag:"업로드", tagClass:"after", title:"10. 검토 및 링크 반영", items:[
+    { t:"검출 개수와 하이라이팅 개수 일치 확인" },
+    { t:"태그 위치 올바른지 확인 (이중 태그 주의)" },
+    { t:"검사결과서 링크 다운로드 후 setting 파일에 반영" }
+  ]},
+  { id:"s11", tag:"납품", tagClass:"after", title:"11. 거래처 납품", items:[
+    { t:"최종 파일 비밀번호 설정 (엑셀 잠금)" },
+    { t:"파일명 규칙 확인 (기관명(인원)_AI 심사결과_에이전시명)" },
+    { t:"납품 메일 작성 및 발송" },
+    { t:"특이사항 메일 본문에 기재", opt:true }
+  ]},
+  { id:"s12", tag:"정산", tagClass:"settle", title:"12. 정산", items:[
+    { t:"견적서 발송 (납품 7일 후)" },
+    { t:"계산서 발행 (견적서 익일)" },
+    { t:"매출시트 진행상황 업데이트" },
+    { t:"턴키 계약 건이면 사용내역 별도 기록", opt:true }
+  ]}
+];
+
+const qcCategories = [
+  { id:"completeness", label:"문장완성도" },
+  { id:"objectivity",  label:"문장객관도" },
+  { id:"similarity",   label:"문장유사도" }
+];
+
+const CURRENT_KEY = "sPart_checklist_v6_current";
+const HISTORY_KEY = "sPart_checklist_v6_history";
+
+// 섹션별 완료 색상 (같은 파트 안에서도 톤을 다르게)
+const sectionColors = {
+  s1:  { strong:"#C7BCF2", bg:"#F3F0FD", text:"#5C4C9E" },
+  s2:  { strong:"#B4A5EE", bg:"#EFEAFC", text:"#4E3D93" },
+  s3:  { strong:"#A08DE8", bg:"#EAE2FA", text:"#432F86" },
+  s4:  { strong:"#8C76E1", bg:"#E3D9F7", text:"#372377" },
+  s5:  { strong:"#C5DE7A", bg:"#F3F8E3", text:"#5A7A1E" },
+  s6:  { strong:"#B0D058", bg:"#EEF5D9", text:"#4C6C18" },
+  s7:  { strong:"#99BE3E", bg:"#E7F0C8", text:"#3F5B12" },
+  s8:  { strong:"#82AC2C", bg:"#DFEAB8", text:"#33470D" },
+  s9:  { strong:"#7FC1EE", bg:"#E9F5FD", text:"#2E6E9E" },
+  s10: { strong:"#4E9AD6", bg:"#DFEFFB", text:"#255B8C" },
+  s11: { strong:"#2E6FB0", bg:"#D7E6F5", text:"#1C4571" },
+  s12: { strong:"#D8A94A", bg:"#F8ECD2", text:"#8A5F17" }
+};
+const successColor = { strong:"#E85D8C", bg:"#FDEAF1", text:"#B23B69" };
+
+function applySectionColor(secId, color){
+  const secEl = document.getElementById("section-" + secId);
+  const head = secEl.querySelector(".section-head");
+  const count = document.getElementById("count-" + secId);
+  const btn = document.querySelector(`.select-all-btn[data-section="${secId}"]`);
+  if (color){
+    secEl.style.borderColor = color.strong;
+    head.style.backgroundColor = color.bg;
+    count.style.color = color.text;
+    if (btn){ btn.style.backgroundColor = color.strong; btn.style.borderColor = color.strong; }
+  } else {
+    secEl.style.borderColor = "";
+    head.style.backgroundColor = "";
+    count.style.color = "";
+    if (btn){ btn.style.backgroundColor = ""; btn.style.borderColor = ""; }
+  }
+}
+
+const container = document.getElementById("sections");
+const state = { qcAssignees:{ completeness:[], objectivity:[], similarity:[] } };
+
+// ---- QC 담당자 (한글 IME 안전 처리) ----
+const qcWrap = document.getElementById("qcAssignees");
+qcCategories.forEach(cat => {
+  const row = document.createElement("div");
+  row.className = "qc-assignee-row";
+  row.innerHTML = `
+    <span class="qc-cat-label">${cat.label}</span>
+    <div class="chip-list" id="chips-${cat.id}"></div>
+    <input type="text" class="chip-input" data-cat="${cat.id}" placeholder="이름 입력 후 Enter">
+  `;
+  qcWrap.appendChild(row);
+});
+
+function renderChips(catId){
+  const list = document.getElementById("chips-" + catId);
+  list.innerHTML = state.qcAssignees[catId].map((name, i) =>
+    `<span class="chip">${name}<button data-cat="${catId}" data-idx="${i}" data-action="remove-chip">×</button></span>`
+  ).join("");
+}
+
+qcWrap.addEventListener("compositionstart", (e) => {
+  if (e.target.matches(".chip-input")) e.target.dataset.composing = "1";
+});
+qcWrap.addEventListener("compositionend", (e) => {
+  if (e.target.matches(".chip-input")) delete e.target.dataset.composing;
+});
+qcWrap.addEventListener("keydown", (e) => {
+  if (e.target.matches(".chip-input") && e.target.dataset.composing) return;
+
+  if (e.key === "Enter" && e.target.matches(".chip-input")){
+    const catId = e.target.dataset.cat;
+    const name = e.target.value.trim();
+    if (name){
+      state.qcAssignees[catId].push(name);
+      renderChips(catId);
+      saveCurrent();
+    }
+    e.target.value = "";
+  }
+
+  if (e.key === "Backspace" && e.target.matches(".chip-input") && e.target.value === ""){
+    const catId = e.target.dataset.cat;
+    if (state.qcAssignees[catId].length > 0){
+      state.qcAssignees[catId].pop();
+      renderChips(catId);
+      saveCurrent();
+    }
+  }
+});
+qcWrap.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action='remove-chip']");
+  if (!btn) return;
+  const catId = btn.dataset.cat;
+  const idx = parseInt(btn.dataset.idx, 10);
+  state.qcAssignees[catId].splice(idx, 1);
+  renderChips(catId);
+  saveCurrent();
+});
+
+// ---- 체크리스트 섹션 ----
+function renderItem(sec, item, index){
+  const id = `${sec.id}-${index}`;
+  const wrap = document.createElement("div");
+  wrap.className = "item-wrap";
+
+  const optBadge = item.opt ? `<span class="opt-badge">옵션</span>` : "";
+  wrap.innerHTML = `
+    <div class="item" data-id="${id}" data-section="${sec.id}">
+      <input type="checkbox" id="chk-${id}">
+      <label for="chk-${id}">${item.t} ${optBadge}</label>
+      <button class="memo-btn" data-action="toggle-memo" data-id="${id}" title="메모">✎</button>
+      <button class="excl-btn" data-action="exclude" data-id="${id}">제외</button>
+    </div>
+    <input type="text" class="memo-input" data-memo-id="${id}" placeholder="메모 입력">
+  `;
+  return wrap;
+}
+
+function renderSection(sec){
+  const secEl = document.createElement("div");
+  secEl.className = "section phase-" + (sec.tagClass || "prep");
+  secEl.id = "section-" + sec.id;
+
+  const head = document.createElement("div");
+  head.className = "section-head";
+  head.innerHTML = `
+    <div class="section-title">
+      <span class="phase-tag ${sec.tagClass}">${sec.tag}</span>
+      <span>${sec.title}</span>
+      <span class="section-count" id="count-${sec.id}"></span>
+    </div>
+    <div class="section-right">
+      <button class="select-all-btn" data-action="select-all" data-section="${sec.id}" title="이 섹션 전체 체크/해제">✓</button>
+      <span class="section-chev">▾</span>
+    </div>
+  `;
+  head.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    secEl.classList.toggle("collapsed");
+    updateExpandLabel();
+  });
+
+  const body = document.createElement("div");
+  body.className = "section-body";
+  body.id = "body-" + sec.id;
+  sec.items.forEach((item, i) => body.appendChild(renderItem(sec, item, i)));
+
+  secEl.appendChild(head);
+  secEl.appendChild(body);
+  container.appendChild(secEl);
+}
+
+sections.forEach(renderSection);
+
+container.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === "exclude"){
+    const id = btn.dataset.id;
+    const row = container.querySelector(`.item[data-id="${id}"]`);
+    const isExcluded = row.classList.toggle("excluded");
+    const cb = row.querySelector("input[type=checkbox]");
+    if (isExcluded){ cb.checked = false; btn.textContent = "복원"; }
+    else { btn.textContent = "제외"; }
+    updateProgress();
+    saveCurrent();
+  }
+
+  if (action === "toggle-memo"){
+    const wrap = btn.closest(".item-wrap");
+    wrap.classList.toggle("memo-open");
+    if (wrap.classList.contains("memo-open")){
+      wrap.querySelector(".memo-input").focus();
+    }
+  }
+
+  if (action === "select-all"){
+    const sectionId = btn.dataset.section;
+    const rows = [...container.querySelectorAll(`.item[data-section="${sectionId}"]`)].filter(r => !r.classList.contains("excluded"));
+    const allChecked = rows.every(r => r.querySelector("input[type=checkbox]").checked);
+    rows.forEach(r => { r.querySelector("input[type=checkbox]").checked = !allChecked; });
+    updateProgress();
+    saveCurrent();
+  }
+});
+
+container.addEventListener("change", (e) => {
+  if (e.target.matches('input[type="checkbox"]')){
+    updateProgress();
+    saveCurrent();
+  }
+});
+container.addEventListener("input", (e) => {
+  if (e.target.matches(".memo-input")){
+    const id = e.target.dataset.memoId;
+    const memoBtn = container.querySelector(`.memo-btn[data-id="${id}"]`);
+    if (memoBtn) memoBtn.classList.toggle("has-memo", e.target.value.trim().length > 0);
+    saveCurrent();
+  }
+});
+
+["taskName","taskOwner","taskRate"].forEach(id => {
+  document.getElementById(id).addEventListener("input", saveCurrent);
+});
+["taskDeadline","taskDelivery"].forEach(id => {
+  document.getElementById(id).addEventListener("change", saveCurrent);
+});
+
+// ---- 전역 컨트롤 ----
+document.getElementById("globalCheckBtn").addEventListener("click", () => {
+  const rows = [...container.querySelectorAll(".item")].filter(r => !r.classList.contains("excluded"));
+  const allChecked = rows.length > 0 && rows.every(r => r.querySelector("input[type=checkbox]").checked);
+  rows.forEach(r => { r.querySelector("input[type=checkbox]").checked = !allChecked; });
+  updateProgress();
+  saveCurrent();
+});
+
+document.getElementById("expandAllBtn").addEventListener("click", () => {
+  const anyCollapsed = [...document.querySelectorAll(".section")].some(s => s.classList.contains("collapsed"));
+  document.querySelectorAll(".section").forEach(s => s.classList.toggle("collapsed", !anyCollapsed));
+  updateExpandLabel();
+});
+
+function updateExpandLabel(){
+  const anyCollapsed = [...document.querySelectorAll(".section")].some(s => s.classList.contains("collapsed"));
+  document.getElementById("expandAllBtn").textContent = anyCollapsed ? "모두 펼치기" : "모두 접기";
+}
+
+function updateProgress(){
+  const rows = container.querySelectorAll(".item");
+  let total = 0, checked = 0;
+  rows.forEach(row => {
+    if (row.classList.contains("excluded")) return;
+    total++;
+    const cb = row.querySelector("input[type=checkbox]");
+    if (cb.checked) checked++;
+    row.classList.toggle("checked", cb.checked);
+  });
+  document.getElementById("progressText").textContent = `${checked} / ${total}`;
+  document.getElementById("progressFill").style.width = total ? (checked / total * 100) + "%" : "0%";
+
+  const globalBtn = document.getElementById("globalCheckBtn");
+  const allDone = total > 0 && checked === total;
+  globalBtn.textContent = allDone ? "전체 해제" : "전체 체크";
+  globalBtn.classList.toggle("active", allDone);
+
+  document.body.classList.toggle("all-complete", allDone);
+  document.getElementById("completeBanner").classList.toggle("show", allDone);
+
+  sections.forEach(sec => {
+    const secRows = [...container.querySelectorAll(`.item[data-section="${sec.id}"]`)].filter(r => !r.classList.contains("excluded"));
+    const secChecked = secRows.filter(r => r.querySelector("input[type=checkbox]").checked);
+    document.getElementById(`count-${sec.id}`).textContent = `${secChecked.length}/${secRows.length}`;
+    const selBtn = document.querySelector(`.select-all-btn[data-section="${sec.id}"]`);
+    const secDone = secRows.length > 0 && secChecked.length === secRows.length;
+    if (selBtn) selBtn.classList.toggle("all-checked", secDone);
+
+    if (allDone){
+      applySectionColor(sec.id, successColor);
+    } else if (secDone){
+      applySectionColor(sec.id, sectionColors[sec.id]);
+    } else {
+      applySectionColor(sec.id, null);
+    }
+  });
+}
+
+function saveCurrent(){
+  const data = {
+    taskName: document.getElementById("taskName").value,
+    taskOwner: document.getElementById("taskOwner").value,
+    taskRate: document.getElementById("taskRate").value,
+    taskDeadline: document.getElementById("taskDeadline").value,
+    taskDelivery: document.getElementById("taskDelivery").value,
+    qcAssignees: state.qcAssignees,
+    checked:{}, excluded:{}, memos:{}
+  };
+  container.querySelectorAll(".item").forEach(row => {
+    const id = row.dataset.id;
+    data.checked[id] = row.querySelector("input[type=checkbox]").checked;
+    data.excluded[id] = row.classList.contains("excluded");
+  });
+  container.querySelectorAll(".memo-input").forEach(inp => {
+    if (inp.value) data.memos[inp.dataset.memoId] = inp.value;
+  });
+  localStorage.setItem(CURRENT_KEY, JSON.stringify(data));
+}
+
+function loadCurrent(){
+  try{
+    const data = JSON.parse(localStorage.getItem(CURRENT_KEY) || "{}");
+    if (data.taskName) document.getElementById("taskName").value = data.taskName;
+    if (data.taskOwner) document.getElementById("taskOwner").value = data.taskOwner;
+    if (data.taskRate) document.getElementById("taskRate").value = data.taskRate;
+    if (data.taskDeadline) document.getElementById("taskDeadline").value = data.taskDeadline;
+    if (data.taskDelivery) document.getElementById("taskDelivery").value = data.taskDelivery;
+
+    if (data.qcAssignees){
+      qcCategories.forEach(cat => {
+        state.qcAssignees[cat.id] = data.qcAssignees[cat.id] || [];
+        renderChips(cat.id);
+      });
+    }
+
+    if (data.checked){
+      Object.keys(data.checked).forEach(id => {
+        const cb = document.getElementById("chk-" + id);
+        if (cb && data.checked[id]) cb.checked = true;
+      });
+    }
+    if (data.excluded){
+      Object.keys(data.excluded).forEach(id => {
+        if (!data.excluded[id]) return;
+        const row = container.querySelector(`.item[data-id="${id}"]`);
+        if (row){
+          row.classList.add("excluded");
+          const btn = row.querySelector(".excl-btn");
+          if (btn) btn.textContent = "복원";
+        }
+      });
+    }
+    if (data.memos){
+      Object.keys(data.memos).forEach(id => {
+        const inp = container.querySelector(`.memo-input[data-memo-id="${id}"]`);
+        if (inp){
+          inp.value = data.memos[id];
+          const memoBtn = container.querySelector(`.memo-btn[data-id="${id}"]`);
+          if (memoBtn) memoBtn.classList.add("has-memo");
+        }
+      });
+    }
+  }catch(e){}
+}
+
+qcCategories.forEach(cat => renderChips(cat.id));
+
+// ---- 기록 ----
+function getHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }catch(e){ return []; }
+}
+function saveHistory(list){ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+
+function renderHistory(){
+  const panel = document.getElementById("historyPanel");
+  const list = getHistory();
+  if (list.length === 0){
+    panel.innerHTML = `<div class="history-empty">아직 저장된 기록이 없어요. "완료 · 기록 저장하고 초기화"를 누르면 여기 쌓여요.</div>`;
+    return;
+  }
+  panel.innerHTML = list.map(h => {
+    const metaParts = [];
+    if (h.taskOwner) metaParts.push(`담당 ${h.taskOwner}`);
+    if (h.taskRate) metaParts.push(`단가 ${h.taskRate}`);
+    if (h.taskDeadline) metaParts.push(`마감 ${h.taskDeadline}`);
+    if (h.taskDelivery) metaParts.push(`납품 ${h.taskDelivery}`);
+    const meta = metaParts.length ? `<div class="hi-date">${metaParts.join(" · ")}</div>` : "";
+
+    const qcParts = [];
+    if (h.qcAssignees){
+      qcCategories.forEach(cat => {
+        const names = h.qcAssignees[cat.id];
+        if (names && names.length) qcParts.push(`${cat.label} ${names.join(",")}`);
+      });
+    }
+    const qcMeta = qcParts.length ? `<div class="hi-date">${qcParts.join(" · ")}</div>` : "";
+
+    return `
+    <div class="history-item">
+      <div class="hi-top"><span>${h.taskName || "(이름 없는 과업)"}</span><span class="hi-score">${h.checked}/${h.total} 완료</span></div>
+      <div class="hi-date">${h.date}</div>
+      ${meta}
+      ${qcMeta}
+    </div>
+  `;
+  }).join("") + `<div class="clear-history"><button id="clearHistoryBtn">전체 기록 삭제</button></div>`;
+
+  const clearBtn = document.getElementById("clearHistoryBtn");
+  if (clearBtn){
+    clearBtn.addEventListener("click", () => {
+      if (confirm("저장된 과업 기록을 전부 삭제할까요?")){
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory();
+      }
+    });
+  }
+}
+
+document.getElementById("historyBtn").addEventListener("click", () => {
+  const panel = document.getElementById("historyPanel");
+  panel.classList.toggle("open");
+  if (panel.classList.contains("open")) renderHistory();
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!confirm("현재 체크리스트를 '지난 기록'에 저장하고 새 과업을 위해 초기화할까요?")) return;
+
+  const rows = container.querySelectorAll(".item");
+  let total = 0, checked = 0;
+  rows.forEach(row => {
+    if (row.classList.contains("excluded")) return;
+    total++;
+    if (row.querySelector("input[type=checkbox]").checked) checked++;
+  });
+
+  const entry = {
+    taskName: document.getElementById("taskName").value || "(이름 없는 과업)",
+    taskOwner: document.getElementById("taskOwner").value,
+    taskRate: document.getElementById("taskRate").value,
+    taskDeadline: document.getElementById("taskDeadline").value,
+    taskDelivery: document.getElementById("taskDelivery").value,
+    qcAssignees: state.qcAssignees,
+    date: new Date().toLocaleString("ko-KR"),
+    total, checked
+  };
+  const history = getHistory();
+  history.unshift(entry);
+  saveHistory(history);
+
+  localStorage.removeItem(CURRENT_KEY);
+  location.reload();
+});
+
+loadCurrent();
+updateProgress();
+updateExpandLabel();
+</script>
+</body>
+</html>
