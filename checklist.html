@@ -616,19 +616,31 @@ container.addEventListener("input", (e) => {
     saveCurrent();
   }
 });
+container.addEventListener("compositionstart", (e) => {
+  if (e.target.matches(".memo-input")) e.target.dataset.composing = "1";
+});
+container.addEventListener("compositionend", (e) => {
+  if (e.target.matches(".memo-input")) delete e.target.dataset.composing;
+});
 container.addEventListener("keydown", (e) => {
   if (e.target.matches(".memo-preview") && e.key === "Enter"){
+    e.preventDefault();
     openMemoEdit(e.target);
     return;
   }
   if (!e.target.matches(".memo-input")) return;
   const ta = e.target;
 
-  if (e.key === "Enter" && !e.shiftKey){
+  if ((e.key === "Enter" || e.keyCode === 13) && !e.shiftKey){
     e.preventDefault();
+    if (e.target.dataset.composing) return;
     const wrap = ta.closest(".item-wrap");
+    const hasMemo = ta.value.trim().length > 0;
     wrap.classList.remove("memo-open");
     ta.blur();
+    if (hasMemo){
+      wrap.querySelector(".memo-preview").focus();
+    }
     saveCurrent();
     return;
   }
