@@ -268,6 +268,29 @@
   }
   .item-edit-btn:hover{ background:rgba(55,53,47,0.12); }
   .item-edit-btn.danger:hover{ background:#FBE4E6; color:#B23B4A; }
+
+  .chip-toggle-wrap{ display:flex; flex-wrap:wrap; gap:5px; margin:5px 0 0 21px; }
+  .blind-chip{
+    padding:3px 10px; border-radius:20px; border:1px solid var(--border); background:var(--bg);
+    font-size:11.5px; color:var(--text-sub); cursor:pointer; transition:background-color .15s, color .15s, border-color .15s;
+  }
+  .blind-chip:hover{ background:var(--hover); }
+  .blind-chip.on{ font-weight:700; border-color:transparent; }
+
+  .chip-edit-row{ display:none; flex-wrap:wrap; gap:5px; margin:5px 0 0 21px; align-items:center; }
+  body.edit-mode .chip-edit-row{ display:flex; }
+  .chip-edit-item{
+    display:inline-flex; align-items:center; gap:0; background:var(--bg); border:1px solid var(--border);
+    border-radius:20px; padding:1px 2px 1px 8px;
+  }
+  .chip-edit-label{ border:none; background:none; font-size:11px; width:56px; font-family:inherit; color:var(--text); }
+  .chip-edit-label:focus{ outline:none; }
+  .chip-edit-del{ background:none; border:none; cursor:pointer; color:var(--text-sub); font-size:12px; padding:2px 6px; }
+  .chip-edit-del:hover{ color:#B23B4A; }
+  .add-chip-input{
+    padding:3px 10px; font-size:11px; border:1px dashed var(--border); border-radius:20px;
+    background:var(--bg); font-family:inherit; width:130px; color:var(--text);
+  }
   .item-edit-row, .section-edit-row, .qc-edit-row, .field-edit-row{ cursor:grab; }
   .item-edit-row:active, .section-edit-row:active, .qc-edit-row:active, .field-edit-row:active{ cursor:grabbing; }
   .item-wrap.dragging, .section.dragging, .qc-assignee-row.dragging, .task-field-row.dragging{ opacity:.35; }
@@ -377,15 +400,26 @@ const DEFAULT_SECTIONS = [
     { id:"s4-4", t:"자소서 문항에 맞춰 컬럼 세팅" }
   ]},
   { id:"s5", tag:"QC", tagClass:"qc", title:"5. 검토(QC) — 순서 준수 필수", items:[
-    { id:"s5-0", t:"① 글자수$RS$RW" },
-    { id:"s5-1", t:"② 지원자내(반복문장)" },
-    { id:"s5-2", t:"③ 불성실문장" },
-    { id:"s5-3", t:"④ 자사명오기재(MON)" },
-    { id:"s5-4", t:"⑤ 타기업지원(AOC)" },
-    { id:"s5-5", t:"⑥ NER Tagging" },
-    { id:"s5-6", t:"⑦ Extra" },
-    { id:"s5-7", t:"⑧ 블라인드(성명/연령/성별/지역/학교/가족/혼인/종교/신체/경력 등)" },
-    { id:"s5-8", t:"⑨ 표절(지원자간/인딥DB/WEB/GPT)", opt:true },
+    { id:"s5-0", t:"글자수$RS$RW" },
+    { id:"s5-1", t:"지원자내(반복문장)" },
+    { id:"s5-2", t:"불성실문장" },
+    { id:"s5-3", t:"자사명오기재(MON)" },
+    { id:"s5-4", t:"타기업지원(AOC)" },
+    { id:"s5-5", t:"NER Tagging" },
+    { id:"s5-6", t:"Extra" },
+    { id:"s5-7", t:"블라인드", chips:[
+      { id:"bc1", label:"성명" },
+      { id:"bc2", label:"연령" },
+      { id:"bc3", label:"성별" },
+      { id:"bc4", label:"출신지역" },
+      { id:"bc5", label:"출신학교" },
+      { id:"bc6", label:"가족" },
+      { id:"bc7", label:"혼인" },
+      { id:"bc8", label:"종교" },
+      { id:"bc9", label:"신체조건" },
+      { id:"bc10", label:"경력경험" }
+    ]},
+    { id:"s5-8", t:"표절(지원자간/인딥DB/WEB/GPT)", opt:true },
     { id:"s5-9", t:"색상 코드 확인 / 완성도: 255,0,0(빨강) 객관도: 0,0,255(파랑)" }
   ]},
   { id:"s6", tag:"QC", tagClass:"qc", title:"6. 취합", items:[
@@ -534,7 +568,7 @@ function applySectionColor(secId, color){
 }
 
 const container = document.getElementById("sections");
-const state = { qcAssignees:{} };
+const state = { qcAssignees:{}, chipStates:{} };
 qcCategories.forEach(cat => { state.qcAssignees[cat.id] = []; });
 
 // ---- QC 담당자 (한글 IME 안전 처리 + 전체동일 모드) ----
@@ -684,6 +718,19 @@ function renderItem(sec, item, index){
 
   const optBadge = item.opt ? `<span class="opt-badge">옵션</span>` : "";
   const linkBtn = item.url ? `<button class="link-btn" data-url="${item.url}" title="링크 새 창에서 열기">📎</button>` : "";
+  const chipToggleHtml = item.chips ? `
+    <div class="chip-toggle-wrap" data-item-id="${id}">
+      ${item.chips.map(c => `<button class="blind-chip" data-item-id="${id}" data-chip-id="${c.id}" data-section="${sec.id}">${c.label}</button>`).join("")}
+    </div>` : "";
+  const chipEditHtml = item.chips ? `
+    <div class="chip-edit-row" data-item-id="${id}">
+      ${item.chips.map(c => `
+        <span class="chip-edit-item">
+          <input type="text" class="chip-edit-label" data-item-id="${id}" data-chip-id="${c.id}" value="${c.label.replace(/"/g,"&quot;")}">
+          <button class="chip-edit-del" data-item-id="${id}" data-chip-id="${c.id}" title="삭제">×</button>
+        </span>`).join("")}
+      <input type="text" class="add-chip-input" data-item-id="${id}" placeholder="+ 항목 추가 후 Enter">
+    </div>` : "";
   wrap.innerHTML = `
     <div class="item" data-id="${id}" data-section="${sec.id}">
       <input type="checkbox" id="chk-${id}">
@@ -692,6 +739,8 @@ function renderItem(sec, item, index){
       <button class="memo-btn" data-action="toggle-memo" data-id="${id}" title="메모">✎</button>
       <button class="excl-btn" data-action="exclude" data-id="${id}">제외</button>
     </div>
+    ${chipToggleHtml}
+    ${chipEditHtml}
     <textarea class="memo-input" data-memo-id="${id}" placeholder="메모 작성 후 Enter, 줄바꿈은 Shift+Enter" rows="1"></textarea>
     <span class="memo-preview" data-memo-id="${id}" tabindex="0"></span>
     <div class="item-edit-row" draggable="true" data-section="${sec.id}" data-item-id="${id}">
@@ -832,6 +881,17 @@ document.addEventListener("input", (e) => {
     const labelEl = row.querySelector(".field-label");
     if (labelEl) labelEl.textContent = f.label;
   }
+  if (e.target.matches(".chip-edit-label")){
+    const itemId = e.target.dataset.itemId;
+    const chipId = e.target.dataset.chipId;
+    const sec = sections.find(s => s.items.some(it => it.id === itemId));
+    const item = sec.items.find(it => it.id === itemId);
+    const c = item.chips.find(x => x.id === chipId);
+    c.label = e.target.value;
+    saveTemplate();
+    const toggleBtn = document.querySelector(`.blind-chip[data-item-id="${itemId}"][data-chip-id="${chipId}"]`);
+    if (toggleBtn) toggleBtn.textContent = c.label;
+  }
 });
 
 document.addEventListener("change", (e) => {
@@ -894,6 +954,29 @@ document.addEventListener("keydown", (e) => {
     renderTaskFields();
     loadCurrent();
   }
+  if (e.target.matches(".add-chip-input") && e.key === "Enter"){
+    const val = e.target.value.trim();
+    if (!val) return;
+    const itemId = e.target.dataset.itemId;
+    const sec = sections.find(s => s.items.some(it => it.id === itemId));
+    const item = sec.items.find(it => it.id === itemId);
+    item.chips.push({ id: genId("chip"), label: val });
+    saveTemplate();
+    renderAll();
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const del = e.target.closest(".chip-edit-del");
+  if (!del) return;
+  const itemId = del.dataset.itemId;
+  const chipId = del.dataset.chipId;
+  const sec = sections.find(s => s.items.some(it => it.id === itemId));
+  if (!sec) return;
+  const item = sec.items.find(it => it.id === itemId);
+  item.chips = item.chips.filter(c => c.id !== chipId);
+  saveTemplate();
+  renderAll();
 });
 
 // ---- 편집 모드: 버튼(순서이동/삭제/추가) ----
@@ -1136,6 +1219,28 @@ function openMemoEdit(el){
 }
 
 container.addEventListener("click", (e) => {
+  const chip = e.target.closest(".blind-chip");
+  if (chip){
+    const itemId = chip.dataset.itemId;
+    const chipId = chip.dataset.chipId;
+    const secId = chip.dataset.section;
+    const key = itemId + "::" + chipId;
+    const isOn = chip.classList.toggle("on");
+    if (isOn){
+      const sec = sections.find(s => s.id === secId);
+      const c = getColor(sec);
+      chip.style.background = c.bg;
+      chip.style.color = c.text;
+    } else {
+      chip.style.background = "";
+      chip.style.color = "";
+    }
+    if (!state.chipStates) state.chipStates = {};
+    state.chipStates[key] = isOn;
+    saveCurrent();
+    return;
+  }
+
   const linkBtn = e.target.closest(".link-btn");
   if (linkBtn){
     window.open(linkBtn.dataset.url, "_blank", "noopener,noreferrer");
@@ -1371,6 +1476,7 @@ function saveCurrent(){
     taskName: document.getElementById("taskName").value,
     fields:{},
     qcAssignees: state.qcAssignees,
+    chipStates: state.chipStates,
     qcLocked: document.getElementById("qcSummary").style.display === "flex",
     checked:{}, excluded:{}, memos:{}
   };
@@ -1411,6 +1517,25 @@ function loadCurrent(){
       document.getElementById("qcAssignees").style.display = "none";
       document.getElementById("qcConfirmBtn").style.display = "none";
       document.getElementById("qcSummary").style.display = "flex";
+    }
+
+    if (data.chipStates){
+      state.chipStates = data.chipStates;
+      Object.keys(data.chipStates).forEach(key => {
+        if (!data.chipStates[key]) return;
+        const [itemId, chipId] = key.split("::");
+        const btn = document.querySelector(`.blind-chip[data-item-id="${itemId}"][data-chip-id="${chipId}"]`);
+        if (btn){
+          btn.classList.add("on");
+          const secId = btn.dataset.section;
+          const sec = sections.find(s => s.id === secId);
+          if (sec){
+            const c = getColor(sec);
+            btn.style.background = c.bg;
+            btn.style.color = c.text;
+          }
+        }
+      });
     }
 
     if (data.checked){
