@@ -22,7 +22,15 @@
     line-height:1.5; font-size:14px;
   }
   .wrap{max-width:600px; margin:0 auto;}
-  h1{font-size:15px; font-weight:600; margin:0 0 10px;}
+  .page-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px; }
+  .page-title-input{
+    flex:1; min-width:0; font-size:15px; font-weight:600; border:none; background:transparent;
+    color:var(--text); font-family:inherit; padding:2px 0; cursor:default;
+  }
+  .page-title-input:focus{ outline:none; }
+  body.edit-mode .page-title-input{
+    border:1px solid var(--border); border-radius:5px; background:var(--card); padding:4px 8px; cursor:text;
+  }
 
   .task-form{ margin-bottom:8px; }
   .task-form input{
@@ -31,9 +39,19 @@
   }
   .task-form input:focus{ outline:none; border-color:var(--accent); }
   .task-form > input{ margin-bottom:6px; }
-  .task-form-row{ display:flex; gap:6px; margin-bottom:6px; }
+  .task-fields{ display:flex; flex-wrap:wrap; gap:6px 8px; }
+  .task-field-row{ display:flex; flex-direction:column; flex:1 1 calc(50% - 4px); min-width:110px; }
   .field{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
   .field-label{ font-size:10px; color:var(--text-sub); padding-left:1px; }
+
+  .field-edit-row{ display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; cursor:grab; }
+  .field-edit-row:active{ cursor:grabbing; }
+  body.edit-mode .field-edit-row{ display:flex; }
+  .field-edit-label{ flex:1; padding:4px 8px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+  .field-edit-type{ padding:4px 6px; font-size:11px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+  .add-field-row{ display:none; align-items:center; gap:6px; margin-top:2px; }
+  body.edit-mode .add-field-row{ display:flex; }
+  .add-field-input{ flex:1; padding:5px 8px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
 
   .qc-assignees{ margin-bottom:2px; }
   .qc-header-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
@@ -163,25 +181,128 @@
   .item-wrap.has-memo:not(.memo-open) .memo-preview{ display:block; }
 
   .footer-actions{ display:flex; justify-content:center; gap:6px; margin-top:12px; }
-  .reset-btn{ padding:6px 12px; border:none; border-radius:5px; background:var(--hover); font-size:12px; cursor:pointer; color:#B23B4A; }
-  .reset-btn:hover{ background:#FBE4E6; }
-  .history-btn{ padding:6px 12px; border:none; border-radius:5px; background:var(--hover); font-size:12px; cursor:pointer; color:var(--text-sub); }
-  .history-btn:hover{ background:rgba(55,53,47,0.1); }
+  .reset-btn{ padding:6px 12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-size:12px; cursor:pointer; color:#B23B4A; }
+  .reset-btn:hover{ background:#FBE4E6; border-color:#F0B8C0; }
+  .history-btn{ padding:6px 12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-size:12px; cursor:pointer; color:var(--text-sub); }
+  .history-btn:hover{ background:var(--hover); }
 
   #historyPanel{ display:none; margin-top:8px; }
   #historyPanel.open{ display:block; }
   .history-item{ background:var(--card); border:1px solid var(--border); border-radius:5px; padding:8px 10px; margin-bottom:5px; }
-  .history-item .hi-top{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:3px; }
+  .history-item .hi-top{ display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:600; margin-bottom:3px; gap:8px; }
   .history-item .hi-date{ font-size:10.5px; color:var(--text-sub); margin-top:2px; }
-  .history-item .hi-score{ font-size:11.5px; color:var(--text-sub); }
+  .history-item .hi-score{ font-size:11.5px; color:var(--text-sub); font-weight:400; }
+  .hi-clickable{ cursor:pointer; display:flex; align-items:center; gap:4px; min-width:0; }
+  .hi-clickable:hover{ text-decoration:underline; }
+  .hi-expand-chev{ font-size:9px; color:var(--text-sub); transition:transform .15s; }
+  .hi-expand-chev.rotated{ transform:rotate(-90deg); }
+  .hi-top-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .hi-del-btn, .hi-edit-btn{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; border:none; background:none; border-radius:5px; cursor:pointer; font-size:11px; color:var(--text-sub); }
+  .hi-del-btn:hover{ background:#FBE4E6; }
+  .hi-edit-btn:hover{ background:var(--hover); }
+  .hi-detail{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); }
+  .hi-section{ margin-bottom:6px; }
+  .hi-section-title{ font-size:10.5px; font-weight:600; color:var(--text-sub); margin-bottom:3px; }
+  .hi-item{ display:flex; gap:6px; font-size:11.5px; padding:1px 0; }
+  .hi-item-done{ color:var(--text-sub); }
+  .hi-item-memo{ font-size:10.5px; color:var(--text-sub); margin:1px 0 2px 20px; padding:2px 6px; background:var(--bg); border-radius:4px; white-space:pre-wrap; }
+  .hi-detail-empty{ font-size:11.5px; color:var(--text-sub); }
+
+  .hi-edit-fields{ display:flex; flex-direction:column; gap:5px; margin-bottom:8px; }
+  .hi-edit-fields .hi-edit-row{ display:flex; gap:5px; }
+  .hi-edit-input{
+    flex:1; min-width:0; padding:5px 8px; font-size:11.5px; border:1px solid var(--border);
+    border-radius:5px; background:var(--bg); color:var(--text); font-family:inherit;
+  }
+  .hi-edit-input:focus{ outline:none; border-color:var(--accent); }
+  .hi-edit-items{ max-height:260px; overflow-y:auto; margin-bottom:8px; }
+  .hi-edit-section{ margin-bottom:8px; }
+  .hi-edit-item{ display:flex; align-items:center; gap:6px; font-size:11.5px; padding:2px 0; }
+  .hi-edit-item.hi-edit-item-excluded{ opacity:.4; }
+  .hi-edit-item.hi-edit-item-excluded .hi-edit-item-text{ text-decoration:line-through; }
+  .hi-edit-item-text{ flex:1; }
+  .hi-edit-exclude-btn{
+    font-size:10px; background:none; border:none; color:var(--text-sub); cursor:pointer;
+    padding:2px 6px; border-radius:20px; flex-shrink:0;
+  }
+  .hi-edit-exclude-btn:hover{ background:var(--hover); }
+  .hi-edit-memo{
+    width:calc(100% - 20px); margin:2px 0 4px 20px; padding:3px 7px; font-size:10.5px;
+    border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-family:inherit;
+  }
+  .hi-edit-memo:focus{ outline:none; border-color:var(--accent); }
+  .hi-edit-actions{ display:flex; justify-content:flex-end; gap:6px; }
+  .hi-edit-save{ padding:5px 12px; border:none; border-radius:5px; background:var(--text); color:#fff; font-size:11.5px; cursor:pointer; }
+  .hi-edit-cancel{ padding:5px 12px; border:1px solid var(--border); border-radius:5px; background:var(--card); color:var(--text-sub); font-size:11.5px; cursor:pointer; }
   .history-empty{ font-size:12px; color:var(--text-sub); text-align:center; padding:12px 0; }
   .clear-history{ text-align:center; margin-top:6px; }
   .clear-history button{ font-size:11px; background:none; border:none; color:#993C1D; cursor:pointer; text-decoration:underline; }
+  /* ---- 편집 모드 ---- */
+  .edit-mode-reset-link{
+    display:none; font-size:10.5px; background:none; border:none; color:var(--text-sub);
+    cursor:pointer; text-decoration:underline; margin-right:auto;
+  }
+  body.edit-mode .edit-mode-reset-link{ display:inline; }
+  .edit-mode-toggle-btn{
+    padding:5px 13px; border:1px solid var(--border); border-radius:8px; background:var(--card);
+    font-size:12px; font-weight:500; color:var(--text-sub); cursor:pointer; flex-shrink:0;
+  }
+  .edit-mode-toggle-btn:hover{ background:var(--hover); }
+  .edit-mode-toggle-btn.active{ background:var(--text); color:#fff; border-color:var(--text); }
+
+  .item-edit-row{ display:none; align-items:center; gap:5px; flex-wrap:wrap; margin:4px 0 2px 21px; }
+  body.edit-mode .item-edit-row{ display:flex; }
+  body.edit-mode .item{ opacity:.55; pointer-events:none; }
+  .item-edit-text{
+    flex:1; min-width:100px; padding:4px 8px; font-size:12px; border:1px solid var(--border);
+    border-radius:5px; background:var(--card); color:var(--text); font-family:inherit;
+  }
+  .item-edit-opt-label{ font-size:10px; color:var(--text-sub); display:flex; align-items:center; gap:3px; white-space:nowrap; flex-shrink:0; }
+  .item-edit-url{
+    width:130px; flex-shrink:0; padding:4px 6px; font-size:10.5px; border:1px solid var(--border);
+    border-radius:5px; background:var(--card); color:var(--text); font-family:inherit;
+  }
+  .item-edit-btn{
+    width:22px; height:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    border:none; background:var(--hover); border-radius:5px; cursor:pointer; font-size:11px; color:var(--text-sub);
+  }
+  .item-edit-btn:hover{ background:rgba(55,53,47,0.12); }
+  .item-edit-btn.danger:hover{ background:#FBE4E6; color:#B23B4A; }
+  .item-edit-row, .section-edit-row, .qc-edit-row, .field-edit-row{ cursor:grab; }
+  .item-edit-row:active, .section-edit-row:active, .qc-edit-row:active, .field-edit-row:active{ cursor:grabbing; }
+  .item-wrap.dragging, .section.dragging, .qc-assignee-row.dragging, .task-field-row.dragging{ opacity:.35; }
+  .item-wrap.drag-over, .section.drag-over, .qc-assignee-row.drag-over, .task-field-row.drag-over{ box-shadow:0 -2px 0 0 var(--accent); }
+
+  .section-edit-row{ display:none; align-items:center; gap:6px; padding:8px 10px; border-top:1px dashed var(--border); background:var(--bg); }
+  body.edit-mode .section-edit-row{ display:flex; }
+  .section-edit-tag{ width:64px; flex-shrink:0; padding:4px 6px; font-size:11px; border:1px solid var(--border); border-radius:5px; background:var(--card); }
+  .section-edit-title{ flex:1; min-width:0; padding:4px 8px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+
+  .add-item-row{ display:none; align-items:center; gap:6px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); }
+  body.edit-mode .add-item-row{ display:flex; }
+  .add-item-input{ flex:1; padding:5px 8px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+
+  .add-section-row{ display:none; align-items:center; gap:6px; margin-top:10px; }
+  body.edit-mode .add-section-row{ display:flex; }
+  .add-section-row .item-edit-btn{ width:auto; padding:6px 14px; font-size:12px; }
+  .add-section-input{ flex:1; padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+
+  .qc-edit-row{ display:none; align-items:center; gap:6px; width:100%; margin-top:5px; padding-top:5px; border-top:1px dashed var(--border); }
+  body.edit-mode .qc-edit-row{ display:flex; }
+  body.edit-mode .qc-assignee-row{ flex-wrap:wrap; }
+  .qc-edit-label{ flex:1; padding:4px 8px; font-size:11.5px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
+
+  .add-qc-cat-row{ display:none; align-items:center; gap:6px; margin-top:4px; }
+  body.edit-mode .add-qc-cat-row{ display:flex; }
+  .add-qc-cat-input{ flex:1; padding:5px 8px; font-size:11.5px; border:1px solid var(--border); border-radius:5px; background:var(--card); font-family:inherit; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>S파트 과업 체크리스트</h1>
+  <div class="page-header">
+    <input type="text" id="pageTitleInput" class="page-title-input" value="S파트 과업 체크리스트" readonly>
+    <button class="edit-mode-toggle-btn" id="editModeBtn" title="편집 모드">편집</button>
+  </div>
 
   <div class="section meta-section" id="metaSection">
     <div class="section-head" id="metaHead">
@@ -191,14 +312,7 @@
     <div class="section-body" id="metaBody">
       <div class="task-form">
         <input type="text" id="taskName" placeholder="과업명 (예: 코레일유통_서류심사)">
-        <div class="task-form-row">
-          <div class="field"><span class="field-label">담당자</span><input type="text" id="taskOwner" placeholder="예: 박혜빈"></div>
-          <div class="field"><span class="field-label">단가</span><input type="text" id="taskRate" placeholder="예: 3,000원/인, 충전계약"></div>
-        </div>
-        <div class="task-form-row">
-          <div class="field"><span class="field-label">서류 마감일</span><input type="date" id="taskDeadline"></div>
-          <div class="field"><span class="field-label">납품일</span><input type="date" id="taskDelivery"></div>
-        </div>
+        <div class="task-fields" id="taskFieldsWrap"></div>
       </div>
 
       <div class="qc-header-row">
@@ -218,6 +332,7 @@
   </div>
 
   <div class="global-actions">
+    <button class="edit-mode-reset-link" id="resetTemplateBtn">기본값으로 되돌리기</button>
     <div class="global-btn-group">
       <button class="icon-round-btn" id="globalCheckBtn" title="전체 체크 / 해제">✓</button>
       <button class="icon-round-btn" id="expandAllBtn" title="전체 펼치기 / 접기"><span class="section-chev" id="expandAllIcon">▾</span></button>
@@ -235,94 +350,136 @@
 </div>
 
 <script>
-const sections = [
+const DEFAULT_SECTIONS = [
   { id:"s1", tag:"준비", tagClass:"", title:"1. 심사 기준 전달받기", items:[
-    { t:"심사 기준 문서 확보 (자사명 인정범위 포함, 구체적일수록 좋음)" },
-    { t:"기준이 모호한 부분 없는지 확인", opt:true }
+    { id:"s1-0", t:"심사 기준 문서 확보 (자사명 인정범위 포함, 구체적일수록 좋음)" },
+    { id:"s1-1", t:"기준이 모호한 부분 없는지 확인", opt:true }
   ]},
   { id:"s2", tag:"준비", tagClass:"", title:"2. 과업 내용 공유 (4곳 동시)", items:[
-    { t:"Google 매출관리 스프레드시트 기록" },
-    { t:"Slack #10-findeet-s(-sales) 채널 공유" },
-    { t:"Notion 'Findeet-S 프로젝트 관리'에 등록" },
-    { t:"Google 캘린더 등록 (기관명_예상인원, 마감일~납품일)" }
+    { id:"s2-0", t:"Google 매출관리 스프레드시트 기록" },
+    { id:"s2-1", t:"Slack #10-findeet-s(-sales) 채널 공유" },
+    { id:"s2-2", t:"Notion 'Findeet-S 프로젝트 관리'에 등록" },
+    { id:"s2-3", t:"Google 캘린더 등록 (기관명_예상인원, 마감일~납품일)" }
   ]},
   { id:"s3", tag:"준비", tagClass:"", title:"3. OP 작업 요청", items:[
-    { t:"raw data 컬럼명 표준화 (수험번호/성명/자기소개서1,2...)" },
-    { t:"특수공백(nbsp) 제거" },
-    { t:"자사명 오기재(MON) input data 준비" },
-    { t:"신규 기관이면 진행 전 담당자에게 확인 요청", opt:true },
-    { t:"OP 자동화 사이트 업로드 및 검출 실행" },
-    { t:"결과파일 전체 다운로드" }
+    { id:"s3-0", t:"raw data 컬럼명 표준화 (수험번호/성명/자기소개서1,2...)" },
+    { id:"s3-1", t:"특수공백(nbsp) 제거" },
+    { id:"s3-2", t:"자사명 오기재(MON) input data 준비" },
+    { id:"s3-3", t:"신규 기관이면 진행 전 담당자에게 확인 요청", opt:true },
+    { id:"s3-4", t:"OP 자동화 사이트 업로드 및 검출 실행" },
+    { id:"s3-5", t:"결과파일 전체 다운로드" }
   ]},
   { id:"s4", tag:"준비", tagClass:"", title:"4. Setting 파일 생성", items:[
-    { t:"raw data → setting 양식으로 이관" },
-    { t:"AI심사결과 시트(완성도·객관도) 세팅" },
-    { t:"표절심사 시트(유사도) 세팅" },
-    { t:"COUNTIF 함수 범위를 지원자 수에 맞게 수정" },
-    { t:"자소서 문항에 맞춰 컬럼 세팅" }
+    { id:"s4-0", t:"raw data → setting 양식으로 이관" },
+    { id:"s4-1", t:"AI심사결과 시트(완성도·객관도) 세팅" },
+    { id:"s4-2", t:"표절심사 시트(유사도) 세팅" },
+    { id:"s4-3", t:"COUNTIF 함수 범위를 지원자 수에 맞게 수정" },
+    { id:"s4-4", t:"자소서 문항에 맞춰 컬럼 세팅" }
   ]},
   { id:"s5", tag:"QC", tagClass:"qc", title:"5. 검토(QC) — 순서 준수 필수", items:[
-    { t:"① 글자수$RS$RW" },
-    { t:"② 지원자내(반복문장)" },
-    { t:"③ 불성실문장" },
-    { t:"④ 자사명오기재(MON)" },
-    { t:"⑤ 타기업지원(AOC)" },
-    { t:"⑥ NER Tagging" },
-    { t:"⑦ Extra" },
-    { t:"⑧ 블라인드(성명/연령/성별/지역/학교/가족/혼인/종교/신체/경력 등)" },
-    { t:"⑨ 표절(지원자간/인딥DB/WEB/GPT)", opt:true },
-    { t:"색상 코드 확인 / 완성도: 255,0,0(빨강) 객관도: 0,0,255(파랑)" }
+    { id:"s5-0", t:"① 글자수$RS$RW" },
+    { id:"s5-1", t:"② 지원자내(반복문장)" },
+    { id:"s5-2", t:"③ 불성실문장" },
+    { id:"s5-3", t:"④ 자사명오기재(MON)" },
+    { id:"s5-4", t:"⑤ 타기업지원(AOC)" },
+    { id:"s5-5", t:"⑥ NER Tagging" },
+    { id:"s5-6", t:"⑦ Extra" },
+    { id:"s5-7", t:"⑧ 블라인드(성명/연령/성별/지역/학교/가족/혼인/종교/신체/경력 등)" },
+    { id:"s5-8", t:"⑨ 표절(지원자간/인딥DB/WEB/GPT)", opt:true },
+    { id:"s5-9", t:"색상 코드 확인 / 완성도: 255,0,0(빨강) 객관도: 0,0,255(파랑)" }
   ]},
   { id:"s6", tag:"QC", tagClass:"qc", title:"6. 취합", items:[
-    { t:"교차검증(자사명·타기업·블라인드) 결과 반영" },
-    { t:"하이라이팅 최종 완성 (검출단어 앞뒤 공백 컬러링 안 되게 주의)" }
+    { id:"s6-0", t:"교차검증(자사명·타기업·블라인드) 결과 반영" },
+    { id:"s6-1", t:"하이라이팅 최종 완성 (검출단어 앞뒤 공백 컬러링 안 되게 주의)" }
   ]},
   { id:"s7", tag:"QC", tagClass:"qc", title:"7. 업로드 양식 파일 생성", items:[
-    { t:"Agency명_기관명_채용내용 형식으로 파일 작성 후 업로드" },
-    { t:"Deepselect 업로드 양식에 맞춰 편집" }
+    { id:"s7-0", t:"Agency명_기관명_채용내용 형식으로 파일 작성 후 업로드" },
+    { id:"s7-1", t:"Deepselect 업로드 양식에 맞춰 편집" }
   ]},
   { id:"s8", tag:"QC", tagClass:"qc", title:"8. tag 작업 및 오류수정", items:[
-    { t:"setting 파일 태깅 실행", url:"http://192.168.0.34:8000/" },
-    { t:";RW;RW / ;RS;RS 중복 태그 확인" },
-    { t:";MON;MON / ;AOC;AOC 중복 태그 확인" },
-    { t:";UNK 태그 확인 → 발견 시 수정" },
-    { t:"PDF 생성", opt:true },
-    { t:"PDF용 이중 태그 확인", opt:true }
+    { id:"s8-0", t:"setting 파일 태깅 실행", url:"http://192.168.0.34:8000/" },
+    { id:"s8-1", t:";RW;RW / ;RS;RS 중복 태그 확인" },
+    { id:"s8-2", t:";MON;MON / ;AOC;AOC 중복 태그 확인" },
+    { id:"s8-3", t:";UNK 태그 확인 → 발견 시 수정" },
+    { id:"s8-4", t:"PDF 생성", opt:true },
+    { id:"s8-5", t:"PDF용 이중 태그 확인", opt:true }
   ]},
   { id:"s9", tag:"업로드", tagClass:"after", title:"9. 업로드", items:[
-    { t:"신규기관 계정 생성", opt:true },
-    { t:"스테이징 업로드 및 결과 확인", url:"https://staging.deepselect.net/" },
-    { t:"딥셀렉 업로드 및 결과 확인", url:"https://www.deepselect.net/" }
+    { id:"s9-0", t:"신규기관 계정 생성", opt:true },
+    { id:"s9-1", t:"스테이징 업로드 및 결과 확인", url:"https://staging.deepselect.net/" },
+    { id:"s9-2", t:"딥셀렉 업로드 및 결과 확인", url:"https://www.deepselect.net/" }
   ]},
   { id:"s10", tag:"검토", tagClass:"after", title:"10. 검토 및 링크 반영", items:[
-    { t:"검출 개수와 하이라이팅 개수 일치 확인" },
-    { t:"태그 위치 올바른지 확인 (이중 태그 주의)" },
-    { t:"검사결과서 링크 다운로드 후 setting 파일에 반영" }
+    { id:"s10-0", t:"검출 개수와 하이라이팅 개수 일치 확인" },
+    { id:"s10-1", t:"태그 위치 올바른지 확인 (이중 태그 주의)" },
+    { id:"s10-2", t:"검사결과서 링크 다운로드 후 setting 파일에 반영" }
   ]},
   { id:"s11", tag:"납품", tagClass:"after", title:"11. 거래처 납품", items:[
-    { t:"최종 파일 비밀번호 설정 (엑셀 잠금)" },
-    { t:"파일명 규칙 확인 (기관명(인원)_AI 심사결과_에이전시명)" },
-    { t:"납품 메일 작성 및 발송" },
-    { t:"특이사항 메일 본문에 기재" }
+    { id:"s11-0", t:"최종 파일 비밀번호 설정 (엑셀 잠금)" },
+    { id:"s11-1", t:"파일명 규칙 확인 (기관명(인원)_AI 심사결과_에이전시명)" },
+    { id:"s11-2", t:"납품 메일 작성 및 발송" },
+    { id:"s11-3", t:"특이사항 메일 본문에 기재" }
   ]},
   { id:"s12", tag:"정산", tagClass:"settle", title:"12. 정산", items:[
-    { t:"견적서 발송 (납품 7일 후)" },
-    { t:"계산서 발행 (견적서 익일)" },
-    { t:"매출시트 진행상황 업데이트" },
-    { t:"턴키 계약 건이면 사용내역 별도 기록", opt:true }
+    { id:"s12-0", t:"견적서 발송 (납품 7일 후)" },
+    { id:"s12-1", t:"계산서 발행 (견적서 익일)" },
+    { id:"s12-2", t:"매출시트 진행상황 업데이트" },
+    { id:"s12-3", t:"턴키 계약 건이면 사용내역 별도 기록", opt:true }
   ]}
 ];
 
-const qcCategories = [
+const DEFAULT_QC_CATEGORIES = [
   { id:"completeness", label:"문장완성도" },
   { id:"objectivity",  label:"문장객관도" },
   { id:"similarity",   label:"문장유사도" }
 ];
 
+const DEFAULT_TASK_FIELDS = [
+  { id:"taskOwner", label:"담당자", type:"text" },
+  { id:"taskRate", label:"단가", type:"text" },
+  { id:"taskDeadline", label:"서류 마감일", type:"date" },
+  { id:"taskDelivery", label:"납품일", type:"date" }
+];
+
 const CURRENT_KEY = "sPart_checklist_v6_current";
 const HISTORY_KEY = "sPart_checklist_v6_history";
+const TEMPLATE_KEY = "sPart_checklist_template_v1";
 
-// 섹션별 완료 색상 (같은 파트 안에서도 톤을 다르게)
+const DEFAULT_PAGE_TITLE = "S파트 과업 체크리스트";
+
+function loadTemplate(){
+  try{
+    const raw = localStorage.getItem(TEMPLATE_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      if (parsed.sections && parsed.qcCategories){
+        return {
+          sections: parsed.sections,
+          qcCategories: parsed.qcCategories,
+          pageTitle: parsed.pageTitle || DEFAULT_PAGE_TITLE,
+          taskFields: parsed.taskFields || JSON.parse(JSON.stringify(DEFAULT_TASK_FIELDS))
+        };
+      }
+    }
+  }catch(e){}
+  return {
+    sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+    qcCategories: JSON.parse(JSON.stringify(DEFAULT_QC_CATEGORIES)),
+    pageTitle: DEFAULT_PAGE_TITLE,
+    taskFields: JSON.parse(JSON.stringify(DEFAULT_TASK_FIELDS))
+  };
+}
+function saveTemplate(){
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ sections, qcCategories, pageTitle, taskFields }));
+}
+function genId(prefix){
+  return prefix + "-" + Date.now().toString(36) + Math.floor(Math.random()*1000);
+}
+
+let { sections, qcCategories, pageTitle, taskFields } = loadTemplate();
+let editMode = false;
+
+// 섹션별 완료 색상 (같은 파트 안에서도 톤을 다르게) — 기본 섹션용 고정 팔레트
 const sectionColors = {
   s1:  { strong:"#C7BCF2", bg:"#F3F0FD", text:"#5C4C9E" },
   s2:  { strong:"#B4A5EE", bg:"#EFEAFC", text:"#4E3D93" },
@@ -338,6 +495,25 @@ const sectionColors = {
   s12: { strong:"#D8A94A", bg:"#F8ECD2", text:"#8A5F17" }
 };
 const successColor = { strong:"#E85D8C", bg:"#FDEAF1", text:"#B23B69" };
+
+// 커스텀(새로 추가한) 섹션을 위한 색상 자동 생성 - id 기준으로 고정된 색을 만들어 매번 동일하게 보이도록 함
+function hashHue(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++){ h = (h * 31 + str.charCodeAt(i)) % 360; }
+  return Math.abs(h) % 360;
+}
+function makeColor(hue){
+  return {
+    strong: `hsl(${hue} 55% 55%)`,
+    bg: `hsl(${hue} 68% 93%)`,
+    text: `hsl(${hue} 55% 32%)`
+  };
+}
+function getColor(sec){
+  if (sectionColors[sec.id]) return sectionColors[sec.id];
+  if (!sec.color) sec.color = makeColor(hashHue(sec.id));
+  return sec.color;
+}
 
 function applySectionColor(secId, color){
   const secEl = document.getElementById("section-" + secId);
@@ -358,22 +534,67 @@ function applySectionColor(secId, color){
 }
 
 const container = document.getElementById("sections");
-const state = { qcAssignees:{ completeness:[], objectivity:[], similarity:[] } };
+const state = { qcAssignees:{} };
+qcCategories.forEach(cat => { state.qcAssignees[cat.id] = []; });
 
 // ---- QC 담당자 (한글 IME 안전 처리 + 전체동일 모드) ----
 const qcWrap = document.getElementById("qcAssignees");
 const qcContainer = document.getElementById("metaBody");
 
-qcCategories.forEach(cat => {
-  const row = document.createElement("div");
-  row.className = "qc-assignee-row";
-  row.innerHTML = `
-    <span class="qc-cat-label">${cat.label}</span>
-    <div class="chip-list" id="chips-${cat.id}"></div>
-    <input type="text" class="chip-input" data-cat="${cat.id}" placeholder="이름 입력 후 Enter">
-  `;
-  qcWrap.appendChild(row);
-});
+function renderQcCategories(){
+  qcWrap.innerHTML = "";
+  qcCategories.forEach(cat => {
+    const row = document.createElement("div");
+    row.className = "qc-assignee-row";
+    row.dataset.cat = cat.id;
+    row.innerHTML = `
+      <span class="qc-cat-label">${cat.label}</span>
+      <div class="chip-list" id="chips-${cat.id}"></div>
+      <input type="text" class="chip-input" data-cat="${cat.id}" placeholder="이름 입력 후 Enter">
+      <div class="qc-edit-row" draggable="true" data-cat="${cat.id}">
+        <input type="text" class="qc-edit-label" data-cat="${cat.id}" value="${cat.label.replace(/"/g,"&quot;")}" placeholder="카테고리 이름">
+        <button class="item-edit-btn danger" data-edit-action="qc-cat-del" data-cat="${cat.id}" title="카테고리 삭제">🗑</button>
+      </div>
+    `;
+    qcWrap.appendChild(row);
+    renderChips(cat.id);
+  });
+  const addRow = document.createElement("div");
+  addRow.className = "add-qc-cat-row";
+  addRow.innerHTML = `<input type="text" class="add-qc-cat-input" placeholder="새 카테고리 이름 입력 후 Enter"><button class="item-edit-btn" data-edit-action="qc-cat-add" title="카테고리 추가">＋</button>`;
+  qcWrap.appendChild(addRow);
+}
+renderQcCategories();
+
+function renderTaskFields(){
+  const wrap = document.getElementById("taskFieldsWrap");
+  wrap.innerHTML = "";
+  taskFields.forEach(f => {
+    const row = document.createElement("div");
+    row.className = "task-field-row";
+    row.dataset.fieldId = f.id;
+    row.innerHTML = `
+      <div class="field">
+        <span class="field-label">${f.label}</span>
+        <input type="${f.type}" id="${f.id}">
+      </div>
+      <div class="field-edit-row" draggable="true" data-field-id="${f.id}">
+        <input type="text" class="field-edit-label" data-field-id="${f.id}" value="${f.label.replace(/"/g,"&quot;")}" placeholder="필드 이름">
+        <select class="field-edit-type" data-field-id="${f.id}">
+          <option value="text" ${f.type==="text"?"selected":""}>글자</option>
+          <option value="date" ${f.type==="date"?"selected":""}>날짜</option>
+        </select>
+        <button class="item-edit-btn danger" data-edit-action="field-del" data-field-id="${f.id}" title="필드 삭제">🗑</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+  const addRow = document.createElement("div");
+  addRow.className = "add-field-row";
+  addRow.innerHTML = `<input type="text" class="add-field-input" placeholder="새 필드 이름 입력 후 Enter"><button class="item-edit-btn" data-edit-action="field-add" title="필드 추가">＋</button>`;
+  wrap.appendChild(addRow);
+}
+renderTaskFields();
 
 function randNameColor(){
   const h = Math.floor(Math.random() * 360);
@@ -455,9 +676,11 @@ document.getElementById("qcSummary").addEventListener("click", () => {
 
 // ---- 체크리스트 섹션 ----
 function renderItem(sec, item, index){
-  const id = `${sec.id}-${index}`;
+  const id = item.id;
   const wrap = document.createElement("div");
   wrap.className = "item-wrap";
+  wrap.dataset.section = sec.id;
+  wrap.dataset.itemId = id;
 
   const optBadge = item.opt ? `<span class="opt-badge">옵션</span>` : "";
   const linkBtn = item.url ? `<button class="link-btn" data-url="${item.url}" title="링크 새 창에서 열기">📎</button>` : "";
@@ -471,6 +694,12 @@ function renderItem(sec, item, index){
     </div>
     <textarea class="memo-input" data-memo-id="${id}" placeholder="메모 작성 후 Enter, 줄바꿈은 Shift+Enter" rows="1"></textarea>
     <span class="memo-preview" data-memo-id="${id}" tabindex="0"></span>
+    <div class="item-edit-row" draggable="true" data-section="${sec.id}" data-item-id="${id}">
+      <input type="text" class="item-edit-text" data-item-id="${id}" data-section="${sec.id}" value="${item.t.replace(/"/g,"&quot;")}">
+      <label class="item-edit-opt-label"><input type="checkbox" class="item-edit-opt" data-item-id="${id}" data-section="${sec.id}" ${item.opt?"checked":""}> 옵션</label>
+      <input type="text" class="item-edit-url" data-item-id="${id}" data-section="${sec.id}" value="${item.url||""}" placeholder="URL (선택)">
+      <button class="item-edit-btn danger" data-edit-action="item-del" data-item-id="${id}" data-section="${sec.id}" title="삭제">🗑</button>
+    </div>
   `;
   return wrap;
 }
@@ -479,13 +708,14 @@ function renderSection(sec){
   const secEl = document.createElement("div");
   secEl.className = "section phase-" + (sec.tagClass || "prep");
   secEl.id = "section-" + sec.id;
+  secEl.dataset.section = sec.id;
 
   const head = document.createElement("div");
   head.className = "section-head";
   head.innerHTML = `
     <div class="section-title">
       <span class="phase-tag" id="tag-${sec.id}">${sec.tag}</span>
-      <span>${sec.title}</span>
+      <span id="title-${sec.id}">${sec.title}</span>
       <span class="section-count" id="count-${sec.id}"></span>
     </div>
     <div class="section-right">
@@ -500,17 +730,400 @@ function renderSection(sec){
     updateExpandLabel();
   });
 
+  const editRow = document.createElement("div");
+  editRow.className = "section-edit-row";
+  editRow.draggable = true;
+  editRow.dataset.section = sec.id;
+  editRow.innerHTML = `
+    <input type="text" class="section-edit-tag" data-section="${sec.id}" value="${sec.tag}" placeholder="배지">
+    <input type="text" class="section-edit-title" data-section="${sec.id}" value="${sec.title.replace(/"/g,"&quot;")}" placeholder="섹션 제목">
+    <button class="item-edit-btn danger" data-edit-action="sec-del" data-section="${sec.id}" title="섹션 삭제">🗑</button>
+  `;
+
   const body = document.createElement("div");
   body.className = "section-body";
   body.id = "body-" + sec.id;
   sec.items.forEach((item, i) => body.appendChild(renderItem(sec, item, i)));
 
+  const addItemRow = document.createElement("div");
+  addItemRow.className = "add-item-row";
+  addItemRow.innerHTML = `<input type="text" class="add-item-input" data-section="${sec.id}" placeholder="새 항목 입력 후 Enter"><button class="item-edit-btn" data-edit-action="item-add" data-section="${sec.id}" title="추가">＋</button>`;
+  body.appendChild(addItemRow);
+
   secEl.appendChild(head);
+  secEl.appendChild(editRow);
   secEl.appendChild(body);
   container.appendChild(secEl);
 }
 
-sections.forEach(renderSection);
+function renderAll(){
+  document.getElementById("pageTitleInput").value = pageTitle;
+  container.innerHTML = "";
+  sections.forEach(renderSection);
+  const addSecRow = document.createElement("div");
+  addSecRow.className = "add-section-row";
+  addSecRow.innerHTML = `<input type="text" class="add-section-input" placeholder="새 섹션 이름 입력 후 Enter"><button class="item-edit-btn" data-edit-action="section-add" title="섹션 추가">＋ 섹션 추가</button>`;
+  container.appendChild(addSecRow);
+  document.body.classList.toggle("edit-mode", editMode);
+  loadCurrent();
+  updateMetaTitle();
+  updateProgress();
+  updateExpandLabel();
+}
+renderAll();
+
+// ---- 편집 모드: 텍스트/옵션/URL 실시간 수정 ----
+document.addEventListener("input", (e) => {
+  if (e.target.matches(".item-edit-text")){
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    const item = sec.items.find(it => it.id === e.target.dataset.itemId);
+    item.t = e.target.value;
+    const label = document.querySelector(`label[for="chk-${item.id}"]`);
+    if (label && label.childNodes[0]) label.childNodes[0].textContent = item.t + " ";
+    saveTemplate();
+  }
+  if (e.target.matches(".item-edit-url")){
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    const item = sec.items.find(it => it.id === e.target.dataset.itemId);
+    item.url = e.target.value.trim();
+    saveTemplate();
+    const itemRow = document.querySelector(`.item[data-id="${item.id}"]`);
+    let linkBtn = itemRow.querySelector(".link-btn");
+    if (item.url){
+      if (!linkBtn){
+        linkBtn = document.createElement("button");
+        linkBtn.className = "link-btn";
+        linkBtn.title = "링크 새 창에서 열기";
+        linkBtn.textContent = "📎";
+        itemRow.querySelector("label").insertAdjacentElement("afterend", linkBtn);
+      }
+      linkBtn.dataset.url = item.url;
+    } else if (linkBtn){
+      linkBtn.remove();
+    }
+  }
+  if (e.target.matches(".section-edit-title")){
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    sec.title = e.target.value;
+    const titleEl = document.getElementById("title-" + sec.id);
+    if (titleEl) titleEl.textContent = sec.title;
+    saveTemplate();
+  }
+  if (e.target.matches(".section-edit-tag")){
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    sec.tag = e.target.value;
+    const tagEl = document.getElementById("tag-" + sec.id);
+    if (tagEl) tagEl.textContent = sec.tag;
+    saveTemplate();
+  }
+  if (e.target.matches(".qc-edit-label")){
+    const cat = qcCategories.find(c => c.id === e.target.dataset.cat);
+    cat.label = e.target.value;
+    saveTemplate();
+    const row = e.target.closest(".qc-assignee-row");
+    const labelEl = row.querySelector(".qc-cat-label");
+    if (labelEl) labelEl.textContent = cat.label;
+  }
+  if (e.target.matches(".field-edit-label")){
+    const f = taskFields.find(x => x.id === e.target.dataset.fieldId);
+    f.label = e.target.value;
+    saveTemplate();
+    const row = e.target.closest(".task-field-row");
+    const labelEl = row.querySelector(".field-label");
+    if (labelEl) labelEl.textContent = f.label;
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target.matches(".item-edit-opt")){
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    const item = sec.items.find(it => it.id === e.target.dataset.itemId);
+    item.opt = e.target.checked;
+    saveTemplate();
+    const label = document.querySelector(`label[for="chk-${item.id}"]`);
+    let badge = label.querySelector(".opt-badge");
+    if (item.opt && !badge){
+      badge = document.createElement("span");
+      badge.className = "opt-badge";
+      badge.textContent = "옵션";
+      label.appendChild(badge);
+    } else if (!item.opt && badge){
+      badge.remove();
+    }
+  }
+  if (e.target.matches(".field-edit-type")){
+    const f = taskFields.find(x => x.id === e.target.dataset.fieldId);
+    f.type = e.target.value;
+    saveTemplate();
+    const valueInput = document.getElementById(f.id);
+    if (valueInput) valueInput.type = f.type;
+  }
+});
+
+// ---- 편집 모드: Enter로 추가 ----
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches(".add-item-input") && e.key === "Enter"){
+    const val = e.target.value.trim();
+    if (!val) return;
+    const sec = sections.find(s => s.id === e.target.dataset.section);
+    sec.items.push({ id: genId(sec.id), t: val });
+    saveTemplate();
+    renderAll();
+  }
+  if (e.target.matches(".add-section-input") && e.key === "Enter"){
+    const val = e.target.value.trim();
+    if (!val) return;
+    sections.push({ id: genId("sec"), tag:"새 섹션", tagClass:"", title:val, items:[] });
+    saveTemplate();
+    renderAll();
+  }
+  if (e.target.matches(".add-qc-cat-input") && e.key === "Enter"){
+    const val = e.target.value.trim();
+    if (!val) return;
+    const newId = genId("cat");
+    qcCategories.push({ id:newId, label:val });
+    state.qcAssignees[newId] = [];
+    saveTemplate();
+    renderQcCategories();
+  }
+  if (e.target.matches(".add-field-input") && e.key === "Enter"){
+    const val = e.target.value.trim();
+    if (!val) return;
+    taskFields.push({ id: genId("field"), label:val, type:"text" });
+    saveTemplate();
+    renderTaskFields();
+    loadCurrent();
+  }
+});
+
+// ---- 편집 모드: 버튼(순서이동/삭제/추가) ----
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".item-edit-btn");
+  if (!btn) return;
+  const action = btn.dataset.editAction;
+
+  if (action === "item-del"){
+    if (!confirm("이 항목을 삭제할까요?")) return;
+    const sec = sections.find(s => s.id === btn.dataset.section);
+    sec.items = sec.items.filter(it => it.id !== btn.dataset.itemId);
+    saveTemplate();
+    renderAll();
+  }
+  if (action === "item-add"){
+    const input = document.querySelector(`.add-item-input[data-section="${btn.dataset.section}"]`);
+    const val = input.value.trim();
+    if (!val) return;
+    const sec = sections.find(s => s.id === btn.dataset.section);
+    sec.items.push({ id: genId(sec.id), t: val });
+    saveTemplate();
+    renderAll();
+  }
+  if (action === "sec-del"){
+    if (!confirm("이 섹션 전체를 삭제할까요? 안에 있는 항목도 다 같이 삭제돼요.")) return;
+    sections = sections.filter(s => s.id !== btn.dataset.section);
+    saveTemplate();
+    renderAll();
+  }
+  if (action === "section-add"){
+    const input = document.querySelector(".add-section-input");
+    const val = input.value.trim();
+    if (!val) return;
+    sections.push({ id: genId("sec"), tag:"새 섹션", tagClass:"", title:val, items:[] });
+    saveTemplate();
+    renderAll();
+  }
+  if (action === "qc-cat-del"){
+    if (qcCategories.length <= 1){ alert("최소 1개는 남아있어야 해요."); return; }
+    if (!confirm("이 QC 카테고리를 삭제할까요?")) return;
+    qcCategories = qcCategories.filter(c => c.id !== btn.dataset.cat);
+    delete state.qcAssignees[btn.dataset.cat];
+    saveTemplate();
+    renderQcCategories();
+  }
+  if (action === "qc-cat-add"){
+    const input = document.querySelector(".add-qc-cat-input");
+    const val = input.value.trim();
+    if (!val) return;
+    const newId = genId("cat");
+    qcCategories.push({ id:newId, label:val });
+    state.qcAssignees[newId] = [];
+    saveTemplate();
+    renderQcCategories();
+  }
+  if (action === "field-add"){
+    const input = document.querySelector(".add-field-input");
+    const val = input.value.trim();
+    if (!val) return;
+    taskFields.push({ id: genId("field"), label:val, type:"text" });
+    saveTemplate();
+    renderTaskFields();
+    loadCurrent();
+  }
+  if (action === "field-del"){
+    if (taskFields.length <= 1){ alert("최소 1개는 남아있어야 해요."); return; }
+    if (!confirm("이 필드를 삭제할까요?")) return;
+    taskFields = taskFields.filter(f => f.id !== btn.dataset.fieldId);
+    saveTemplate();
+    renderTaskFields();
+    loadCurrent();
+  }
+});
+
+// ---- 편집 모드: 바를 드래그해서 순서 변경 (부드러운 이동 애니메이션 포함) ----
+function flipAnimate(parentEl, mutateFn){
+  const firstRects = new Map();
+  [...parentEl.children].forEach(el => firstRects.set(el, el.getBoundingClientRect()));
+
+  mutateFn();
+
+  [...parentEl.children].forEach(el => {
+    const first = firstRects.get(el);
+    if (!first) return;
+    const last = el.getBoundingClientRect();
+    const dy = first.top - last.top;
+    if (Math.abs(dy) < 1) return;
+    el.style.transition = "none";
+    el.style.transform = `translateY(${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = "transform .22s ease";
+      el.style.transform = "";
+      el.addEventListener("transitionend", () => { el.style.transition = ""; }, { once:true });
+    });
+  });
+}
+
+const dragState = { type:null, id:null, section:null };
+
+document.addEventListener("dragstart", (e) => {
+  if (!editMode) return;
+  const itemRow = e.target.closest(".item-edit-row");
+  const secRow = e.target.closest(".section-edit-row");
+  const qcRow = e.target.closest(".qc-edit-row");
+  const fieldRow = e.target.closest(".field-edit-row");
+  if (itemRow){
+    dragState.type = "item";
+    dragState.id = itemRow.dataset.itemId;
+    dragState.section = itemRow.dataset.section;
+    itemRow.closest(".item-wrap").classList.add("dragging");
+  } else if (secRow){
+    dragState.type = "section";
+    dragState.id = secRow.dataset.section;
+    secRow.closest(".section").classList.add("dragging");
+  } else if (qcRow){
+    dragState.type = "qc-cat";
+    dragState.id = qcRow.dataset.cat;
+    qcRow.closest(".qc-assignee-row").classList.add("dragging");
+  } else if (fieldRow){
+    dragState.type = "task-field";
+    dragState.id = fieldRow.dataset.fieldId;
+    fieldRow.closest(".task-field-row").classList.add("dragging");
+  } else {
+    return;
+  }
+  e.dataTransfer.effectAllowed = "move";
+});
+
+document.addEventListener("dragend", () => {
+  document.querySelectorAll(".dragging").forEach(el => el.classList.remove("dragging"));
+  document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+  dragState.type = null;
+});
+
+function markDragOver(el){
+  document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
+  el.classList.add("drag-over");
+}
+
+document.addEventListener("dragover", (e) => {
+  if (!dragState.type) return;
+  if (dragState.type === "item"){
+    const over = e.target.closest(".item-wrap");
+    if (over && over.dataset.section === dragState.section){ e.preventDefault(); markDragOver(over); }
+  } else if (dragState.type === "section"){
+    const over = e.target.closest(".section:not(.meta-section)");
+    if (over){ e.preventDefault(); markDragOver(over); }
+  } else if (dragState.type === "qc-cat"){
+    const over = e.target.closest(".qc-assignee-row");
+    if (over){ e.preventDefault(); markDragOver(over); }
+  } else if (dragState.type === "task-field"){
+    const over = e.target.closest(".task-field-row");
+    if (over){ e.preventDefault(); markDragOver(over); }
+  }
+});
+
+document.addEventListener("drop", (e) => {
+  if (dragState.type === "item"){
+    const over = e.target.closest(".item-wrap");
+    if (!over || over.dataset.section !== dragState.section || over.dataset.itemId === dragState.id) return;
+    e.preventDefault();
+    const sec = sections.find(s => s.id === dragState.section);
+    const fromIdx = sec.items.findIndex(it => it.id === dragState.id);
+    if (fromIdx === -1) return;
+    const [moved] = sec.items.splice(fromIdx, 1);
+    const toIdx = sec.items.findIndex(it => it.id === over.dataset.itemId);
+    sec.items.splice(toIdx, 0, moved);
+    saveTemplate();
+    const body = document.getElementById("body-" + dragState.section);
+    const wrapA = body.querySelector(`.item-wrap[data-item-id="${dragState.id}"]`);
+    flipAnimate(body, () => { body.insertBefore(wrapA, over); });
+  } else if (dragState.type === "section"){
+    const over = e.target.closest(".section:not(.meta-section)");
+    if (!over || over.dataset.section === dragState.id) return;
+    e.preventDefault();
+    const fromIdx = sections.findIndex(s => s.id === dragState.id);
+    if (fromIdx === -1) return;
+    const [moved] = sections.splice(fromIdx, 1);
+    const toIdx = sections.findIndex(s => s.id === over.dataset.section);
+    sections.splice(toIdx, 0, moved);
+    saveTemplate();
+    const secElA = document.getElementById("section-" + dragState.id);
+    flipAnimate(container, () => { container.insertBefore(secElA, over); });
+  } else if (dragState.type === "qc-cat"){
+    const over = e.target.closest(".qc-assignee-row");
+    if (!over || over.dataset.cat === dragState.id) return;
+    e.preventDefault();
+    const fromIdx = qcCategories.findIndex(c => c.id === dragState.id);
+    if (fromIdx === -1) return;
+    const [moved] = qcCategories.splice(fromIdx, 1);
+    const toIdx = qcCategories.findIndex(c => c.id === over.dataset.cat);
+    qcCategories.splice(toIdx, 0, moved);
+    saveTemplate();
+    const rowA = qcWrap.querySelector(`.qc-assignee-row[data-cat="${dragState.id}"]`);
+    flipAnimate(qcWrap, () => { qcWrap.insertBefore(rowA, over); });
+  } else if (dragState.type === "task-field"){
+    const over = e.target.closest(".task-field-row");
+    if (!over || over.dataset.fieldId === dragState.id) return;
+    e.preventDefault();
+    const fromIdx = taskFields.findIndex(f => f.id === dragState.id);
+    if (fromIdx === -1) return;
+    const [moved] = taskFields.splice(fromIdx, 1);
+    const toIdx = taskFields.findIndex(f => f.id === over.dataset.fieldId);
+    taskFields.splice(toIdx, 0, moved);
+    saveTemplate();
+    const wrap = document.getElementById("taskFieldsWrap");
+    const rowA = wrap.querySelector(`.task-field-row[data-field-id="${dragState.id}"]`);
+    flipAnimate(wrap, () => { wrap.insertBefore(rowA, over); });
+  }
+});
+
+document.getElementById("editModeBtn").addEventListener("click", () => {
+  editMode = !editMode;
+  document.body.classList.toggle("edit-mode", editMode);
+  document.getElementById("editModeBtn").classList.toggle("active", editMode);
+  document.getElementById("pageTitleInput").readOnly = !editMode;
+  renderAll();
+});
+
+document.getElementById("pageTitleInput").addEventListener("input", (e) => {
+  pageTitle = e.target.value;
+  saveTemplate();
+});
+
+document.getElementById("resetTemplateBtn").addEventListener("click", () => {
+  if (!confirm("편집한 섹션/항목 구성을 기본값으로 되돌릴까요? (체크 기록·지난 기록은 유지돼요)")) return;
+  localStorage.removeItem(TEMPLATE_KEY);
+  location.reload();
+});
 
 function openMemoEdit(el){
   const wrap = el.closest(".item-wrap");
@@ -664,12 +1277,12 @@ function updateMetaTitle(){
   document.getElementById("metaTitle").textContent = name ? `📋 ${name}` : "📋 과업 정보 & QC 담당자";
 }
 
-["taskName","taskOwner","taskRate"].forEach(id => {
-  document.getElementById(id).addEventListener("input", saveCurrent);
+document.getElementById("taskName").addEventListener("input", () => { saveCurrent(); updateMetaTitle(); });
+document.getElementById("taskFieldsWrap").addEventListener("input", (e) => {
+  if (e.target.matches(".task-field-row input")) saveCurrent();
 });
-document.getElementById("taskName").addEventListener("input", updateMetaTitle);
-["taskDeadline","taskDelivery"].forEach(id => {
-  document.getElementById(id).addEventListener("change", saveCurrent);
+document.getElementById("taskFieldsWrap").addEventListener("change", (e) => {
+  if (e.target.matches(".task-field-row input")) saveCurrent();
 });
 
 // ---- 전역 컨트롤 ----
@@ -735,8 +1348,8 @@ function updateProgress(){
     const tagEl = document.getElementById(`tag-${sec.id}`);
     if (tagEl){
       if (secChecked.length > 0){
-        tagEl.style.background = sectionColors[sec.id].bg;
-        tagEl.style.color = sectionColors[sec.id].text;
+        tagEl.style.background = getColor(sec).bg;
+        tagEl.style.color = getColor(sec).text;
       } else {
         tagEl.style.background = "";
         tagEl.style.color = "";
@@ -746,7 +1359,7 @@ function updateProgress(){
     if (allDone){
       applySectionColor(sec.id, successColor);
     } else if (secDone){
-      applySectionColor(sec.id, sectionColors[sec.id]);
+      applySectionColor(sec.id, getColor(sec));
     } else {
       applySectionColor(sec.id, null);
     }
@@ -756,14 +1369,15 @@ function updateProgress(){
 function saveCurrent(){
   const data = {
     taskName: document.getElementById("taskName").value,
-    taskOwner: document.getElementById("taskOwner").value,
-    taskRate: document.getElementById("taskRate").value,
-    taskDeadline: document.getElementById("taskDeadline").value,
-    taskDelivery: document.getElementById("taskDelivery").value,
+    fields:{},
     qcAssignees: state.qcAssignees,
     qcLocked: document.getElementById("qcSummary").style.display === "flex",
     checked:{}, excluded:{}, memos:{}
   };
+  taskFields.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (el) data.fields[f.id] = el.value;
+  });
   container.querySelectorAll(".item").forEach(row => {
     const id = row.dataset.id;
     data.checked[id] = row.querySelector("input[type=checkbox]").checked;
@@ -779,10 +1393,12 @@ function loadCurrent(){
   try{
     const data = JSON.parse(localStorage.getItem(CURRENT_KEY) || "{}");
     if (data.taskName) document.getElementById("taskName").value = data.taskName;
-    if (data.taskOwner) document.getElementById("taskOwner").value = data.taskOwner;
-    if (data.taskRate) document.getElementById("taskRate").value = data.taskRate;
-    if (data.taskDeadline) document.getElementById("taskDeadline").value = data.taskDeadline;
-    if (data.taskDelivery) document.getElementById("taskDelivery").value = data.taskDelivery;
+    taskFields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (!el) return;
+      if (data.fields && data.fields[f.id] !== undefined) el.value = data.fields[f.id];
+      else if (data[f.id] !== undefined) el.value = data[f.id]; // 이전 버전 저장분 호환
+    });
 
     if (data.qcAssignees){
       qcCategories.forEach(cat => {
@@ -834,13 +1450,64 @@ function loadCurrent(){
   }catch(e){}
 }
 
-qcCategories.forEach(cat => renderChips(cat.id));
 
 // ---- 기록 ----
 function getHistory(){
   try{ return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }catch(e){ return []; }
 }
 function saveHistory(list){ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+
+function buildHistoryDetail(h){
+  if (!h.items) return `<div class="hi-detail-empty">이 기록엔 세부 항목이 저장되어 있지 않아요 (예전 버전에서 저장됨)</div>`;
+  return sections.map(sec => {
+    const rows = sec.items.map((item, i) => {
+      const id = item.id;
+      const snap = h.items[id];
+      if (!snap || snap.excluded) return "";
+      const mark = snap.checked ? "☑" : "☐";
+      const memo = h.memos && h.memos[id] ? `<div class="hi-item-memo">${h.memos[id]}</div>` : "";
+      return `<div class="hi-item ${snap.checked ? "hi-item-done" : ""}"><span>${mark}</span><span>${item.t}</span></div>${memo}`;
+    }).join("");
+    if (!rows) return "";
+    return `<div class="hi-section"><div class="hi-section-title">${sec.tag} · ${sec.title}</div>${rows}</div>`;
+  }).join("");
+}
+
+function buildHistoryEditForm(h, idx){
+  const itemsHtml = h.items ? sections.map(sec => {
+    const rows = sec.items.map((item, i) => {
+      const id = item.id;
+      const snap = h.items[id] || { checked:false, excluded:false };
+      const memoVal = (h.memos && h.memos[id]) || "";
+      return `
+        <div class="hi-edit-item ${snap.excluded ? "hi-edit-item-excluded" : ""}" data-item-row="${id}">
+          <input type="checkbox" class="hi-edit-check" data-item-id="${id}" ${snap.checked ? "checked" : ""} ${snap.excluded ? "disabled" : ""}>
+          <span class="hi-edit-item-text">${item.t}</span>
+          <button class="hi-edit-exclude-btn" data-item-id="${id}" data-excluded="${snap.excluded ? "1" : "0"}">${snap.excluded ? "복원" : "제외"}</button>
+        </div>
+        <input type="text" class="hi-edit-memo" data-item-id="${id}" value="${memoVal.replace(/"/g,"&quot;")}" placeholder="메모">
+      `;
+    }).join("");
+    return `<div class="hi-edit-section"><div class="hi-section-title">${sec.tag} · ${sec.title}</div>${rows}</div>`;
+  }).join("") : `<div class="hi-detail-empty">이 기록엔 세부 항목이 없어요</div>`;
+
+  const fieldsFormHtml = taskFields.map(f => {
+    const val = (h.fields && h.fields[f.id] !== undefined) ? h.fields[f.id] : (h[f.id] || "");
+    return `<input type="${f.type}" class="hi-edit-input" data-field="${f.id}" value="${String(val).replace(/"/g,"&quot;")}" placeholder="${f.label}">`;
+  }).join("");
+
+  return `
+    <div class="hi-edit-fields">
+      <input type="text" class="hi-edit-input" data-field="taskName" value="${(h.taskName||"").replace(/"/g,"&quot;")}" placeholder="과업명">
+      <div class="hi-edit-row" style="flex-wrap:wrap;">${fieldsFormHtml}</div>
+    </div>
+    <div class="hi-edit-items">${itemsHtml}</div>
+    <div class="hi-edit-actions">
+      <button class="hi-edit-save" data-idx="${idx}">저장</button>
+      <button class="hi-edit-cancel">취소</button>
+    </div>
+  `;
+}
 
 function renderHistory(){
   const panel = document.getElementById("historyPanel");
@@ -849,12 +1516,22 @@ function renderHistory(){
     panel.innerHTML = `<div class="history-empty">아직 저장된 기록이 없어요. "완료 · 기록 저장하고 초기화"를 누르면 여기 쌓여요.</div>`;
     return;
   }
-  panel.innerHTML = list.map(h => {
+  panel.innerHTML = list.map((h, idx) => {
     const metaParts = [];
-    if (h.taskOwner) metaParts.push(`담당 ${h.taskOwner}`);
-    if (h.taskRate) metaParts.push(`단가 ${h.taskRate}`);
-    if (h.taskDeadline) metaParts.push(`마감 ${h.taskDeadline}`);
-    if (h.taskDelivery) metaParts.push(`납품 ${h.taskDelivery}`);
+    if (h.fields){
+      Object.keys(h.fields).forEach(fid => {
+        const val = h.fields[fid];
+        if (!val) return;
+        const label = (h.fieldLabels && h.fieldLabels[fid]) || fid;
+        metaParts.push(`${label} ${val}`);
+      });
+    } else {
+      // 이전 버전 기록 호환
+      if (h.taskOwner) metaParts.push(`담당자 ${h.taskOwner}`);
+      if (h.taskRate) metaParts.push(`단가 ${h.taskRate}`);
+      if (h.taskDeadline) metaParts.push(`서류 마감일 ${h.taskDeadline}`);
+      if (h.taskDelivery) metaParts.push(`납품일 ${h.taskDelivery}`);
+    }
     const meta = metaParts.length ? `<div class="hi-date">${metaParts.join(" · ")}</div>` : "";
 
     const qcParts = [];
@@ -868,13 +1545,53 @@ function renderHistory(){
 
     return `
     <div class="history-item">
-      <div class="hi-top"><span>${h.taskName || "(이름 없는 과업)"}</span><span class="hi-score">${h.checked}/${h.total} 완료</span></div>
+      <div class="hi-top">
+        <span class="hi-clickable" data-idx="${idx}">${h.taskName || "(이름 없는 과업)"} <span class="hi-expand-chev">▾</span></span>
+        <span class="hi-top-right">
+          <span class="hi-score">${h.checked}/${h.total} 완료</span>
+          <button class="hi-edit-btn" data-idx="${idx}" title="이 기록 수정">✎</button>
+          <button class="hi-del-btn" data-idx="${idx}" title="이 기록 삭제">🗑</button>
+        </span>
+      </div>
       <div class="hi-date">${h.date}</div>
       ${meta}
       ${qcMeta}
+      <div class="hi-detail" id="hi-detail-${idx}" style="display:none;">${buildHistoryDetail(h)}</div>
     </div>
   `;
   }).join("") + `<div class="clear-history"><button id="clearHistoryBtn">전체 기록 삭제</button></div>`;
+
+  panel.querySelectorAll(".hi-clickable").forEach(el => {
+    el.addEventListener("click", () => {
+      const idx = el.dataset.idx;
+      const detail = document.getElementById("hi-detail-" + idx);
+      const isOpen = detail.style.display === "block";
+      detail.style.display = isOpen ? "none" : "block";
+      el.querySelector(".hi-expand-chev").classList.toggle("rotated", !isOpen);
+    });
+  });
+
+  panel.querySelectorAll(".hi-del-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx, 10);
+      const list2 = getHistory();
+      list2.splice(idx, 1);
+      saveHistory(list2);
+      renderHistory();
+    });
+  });
+
+  panel.querySelectorAll(".hi-edit-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx, 10);
+      const h = getHistory()[idx];
+      const detail = document.getElementById("hi-detail-" + idx);
+      detail.innerHTML = buildHistoryEditForm(h, idx);
+      detail.style.display = "block";
+    });
+  });
 
   const clearBtn = document.getElementById("clearHistoryBtn");
   if (clearBtn){
@@ -893,6 +1610,61 @@ document.getElementById("historyBtn").addEventListener("click", () => {
   if (panel.classList.contains("open")) renderHistory();
 });
 
+document.getElementById("historyPanel").addEventListener("click", (e) => {
+  const exBtn = e.target.closest(".hi-edit-exclude-btn");
+  if (exBtn){
+    const willExclude = exBtn.dataset.excluded === "0";
+    exBtn.dataset.excluded = willExclude ? "1" : "0";
+    exBtn.textContent = willExclude ? "복원" : "제외";
+    const row = exBtn.closest(".hi-edit-item");
+    row.classList.toggle("hi-edit-item-excluded", willExclude);
+    const cb = row.querySelector(".hi-edit-check");
+    cb.disabled = willExclude;
+    if (willExclude) cb.checked = false;
+    return;
+  }
+
+  const cancelBtn = e.target.closest(".hi-edit-cancel");
+  if (cancelBtn){
+    renderHistory();
+    return;
+  }
+
+  const saveBtn = e.target.closest(".hi-edit-save");
+  if (saveBtn){
+    const idx = parseInt(saveBtn.dataset.idx, 10);
+    const formRoot = saveBtn.closest(".hi-detail");
+    const list2 = getHistory();
+    const h = list2[idx];
+
+    formRoot.querySelectorAll(".hi-edit-input").forEach(inp => {
+      if (inp.dataset.field === "taskName") h.taskName = inp.value;
+      else { if (!h.fields) h.fields = {}; h.fields[inp.dataset.field] = inp.value; }
+    });
+
+    if (h.items){
+      let total = 0, checked = 0;
+      formRoot.querySelectorAll(".hi-edit-item").forEach(row => {
+        const id = row.dataset.itemRow;
+        const cb = row.querySelector(".hi-edit-check");
+        const excludedNow = row.classList.contains("hi-edit-item-excluded");
+        h.items[id] = { checked: cb.checked, excluded: excludedNow };
+        if (!excludedNow){ total++; if (cb.checked) checked++; }
+      });
+      h.total = total;
+      h.checked = checked;
+    }
+    if (!h.memos) h.memos = {};
+    formRoot.querySelectorAll(".hi-edit-memo").forEach(inp => {
+      if (inp.value.trim()) h.memos[inp.dataset.itemId] = inp.value;
+      else delete h.memos[inp.dataset.itemId];
+    });
+
+    saveHistory(list2);
+    renderHistory();
+  }
+});
+
 document.getElementById("resetBtn").addEventListener("click", () => {
   if (!confirm("현재 체크리스트를 '지난 기록'에 저장하고 새 과업을 위해 초기화할까요?")) return;
 
@@ -904,15 +1676,35 @@ document.getElementById("resetBtn").addEventListener("click", () => {
     if (row.querySelector("input[type=checkbox]").checked) checked++;
   });
 
+  const itemSnapshot = {};
+  container.querySelectorAll(".item").forEach(row => {
+    itemSnapshot[row.dataset.id] = {
+      checked: row.querySelector("input[type=checkbox]").checked,
+      excluded: row.classList.contains("excluded")
+    };
+  });
+  const memoSnapshot = {};
+  container.querySelectorAll(".memo-input").forEach(inp => {
+    if (inp.value.trim()) memoSnapshot[inp.dataset.memoId] = inp.value;
+  });
+
+  const fieldSnapshot = {};
+  const fieldLabelSnapshot = {};
+  taskFields.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (el) fieldSnapshot[f.id] = el.value;
+    fieldLabelSnapshot[f.id] = f.label;
+  });
+
   const entry = {
     taskName: document.getElementById("taskName").value || "(이름 없는 과업)",
-    taskOwner: document.getElementById("taskOwner").value,
-    taskRate: document.getElementById("taskRate").value,
-    taskDeadline: document.getElementById("taskDeadline").value,
-    taskDelivery: document.getElementById("taskDelivery").value,
+    fields: fieldSnapshot,
+    fieldLabels: fieldLabelSnapshot,
     qcAssignees: state.qcAssignees,
     date: new Date().toLocaleString("ko-KR"),
-    total, checked
+    total, checked,
+    items: itemSnapshot,
+    memos: memoSnapshot
   };
   const history = getHistory();
   history.unshift(entry);
