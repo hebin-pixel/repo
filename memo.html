@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S파트 특이사항 메모장</title>
+<style>
+  :root{
+    --bg:#FFFFFF; --card:#FFFFFF; --border:#E9E9E7; --text:#37352F; --text-sub:rgba(55,53,47,0.65);
+    --hover:rgba(55,53,47,0.06);
+    --accent:#2383E2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:10px 12px 24px; background:var(--bg); color:var(--text);
+    font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    line-height:1.5; font-size:14px;
+  }
+  .wrap{max-width:640px; margin:0 auto;}
+
+  .page-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  h1{ font-size:15px; font-weight:600; margin:0; }
+  .summary{ font-size:11.5px; color:var(--text-sub); }
+  .format-hint{ font-size:10.5px; color:var(--text-sub); margin:0 0 12px; }
+  .format-hint code{ background:var(--hover); padding:1px 5px; border-radius:4px; }
+
+  .add-card{
+    background:var(--card); border:1px solid var(--border); border-radius:8px;
+    padding:12px; margin-bottom:14px;
+  }
+  .add-row{ display:flex; gap:6px; margin-bottom:6px; }
+  .add-row input, .add-row select{
+    padding:6px 8px; font-size:12.5px; border:1px solid var(--border); border-radius:5px;
+    background:var(--bg); color:var(--text); font-family:inherit;
+  }
+  .add-row input:focus, .add-row select:focus{ outline:none; border-color:var(--accent); }
+  #f-examId{ width:90px; flex-shrink:0; }
+  #f-category{ flex:1.4; min-width:0; }
+  #f-qnum{ width:56px; flex-shrink:0; }
+  #f-content{ flex:1; min-width:0; }
+  #f-desc{ flex:1; min-width:0; }
+  .add-actions{ display:flex; justify-content:flex-end; }
+  .add-btn{ padding:6px 16px; border:none; border-radius:5px; background:var(--text); color:#fff; font-size:12.5px; cursor:pointer; }
+  .add-btn:hover{ opacity:.9; }
+
+  .preview-line{
+    font-size:11.5px; color:var(--text-sub); background:var(--hover); border-radius:5px;
+    padding:5px 9px; margin-bottom:8px; font-family:ui-monospace,monospace; white-space:pre-wrap;
+  }
+
+  .toolbar{ display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .toolbar-spacer{ flex:1; }
+  .copy-all-btn{
+    padding:6px 12px; border:1px solid var(--border); border-radius:6px; background:var(--card);
+    font-size:12px; color:var(--text-sub); cursor:pointer;
+  }
+  .copy-all-btn:hover{ background:var(--hover); }
+  .copy-all-btn.copied{ background:var(--text); color:#fff; border-color:var(--text); }
+  .clear-all-btn{ font-size:11px; color:var(--text-sub); background:none; border:none; cursor:pointer; text-decoration:underline; }
+
+  .category-group{ margin-bottom:14px; }
+  .category-title{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:12px; font-weight:600; color:var(--text-sub); margin-bottom:6px; padding-bottom:4px;
+    border-bottom:1px solid var(--border);
+  }
+  .category-copy-btn{ font-size:10.5px; color:var(--text-sub); background:none; border:none; cursor:pointer; text-decoration:underline; }
+
+  .entry-row{
+    display:flex; align-items:flex-start; gap:8px; background:var(--card); border:1px solid var(--border);
+    border-radius:6px; padding:7px 10px; margin-bottom:6px;
+  }
+  .entry-text{ flex:1; font-size:12.5px; font-family:ui-monospace,monospace; white-space:pre-wrap; word-break:break-word; }
+  .entry-actions{ display:flex; gap:2px; flex-shrink:0; }
+  .icon-btn{
+    width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+    border:none; background:none; border-radius:5px; cursor:pointer; font-size:11px; color:var(--text-sub);
+  }
+  .icon-btn:hover{ background:var(--hover); }
+  .icon-btn.del:hover{ background:#FBE4E6; color:#B23B4A; }
+
+  .empty-state{ text-align:center; padding:28px 0; color:var(--text-sub); font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-header">
+    <h1>S파트 특이사항 메모장</h1>
+    <span class="summary" id="summaryText"></span>
+  </div>
+  <p class="format-hint">양식: <code># 수험번호 - 문항. 내용 / 설명</code></p>
+
+  <div class="add-card">
+    <div class="add-row">
+      <input type="text" id="f-examId" placeholder="수험번호">
+      <select id="f-category"></select>
+      <input type="text" id="f-qnum" placeholder="문항">
+    </div>
+    <div class="add-row">
+      <input type="text" id="f-content" placeholder="특이사항 내용 (본문 인용)">
+    </div>
+    <div class="add-row">
+      <input type="text" id="f-desc" placeholder="설명 (검출 사유 등)">
+    </div>
+    <div class="preview-line" id="previewLine"># 수험번호 - 문항. 내용 / 설명</div>
+    <div class="add-actions">
+      <button class="add-btn" id="addBtn">추가</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="copy-all-btn" id="copyAllBtn">전체 복사</button>
+    <div class="toolbar-spacer"></div>
+    <button class="clear-all-btn" id="clearAllBtn">전체 삭제</button>
+  </div>
+
+  <div id="entryList"></div>
+</div>
+
+<script>
+const STORAGE_KEY = "sPart_memo_log_v1";
+
+const categories = [
+  "자사명오기재", "타기업지원",
+  "블라인드-성명", "블라인드-연령", "블라인드-성별", "블라인드-출신지역", "블라인드-출신학교",
+  "블라인드-가족", "블라인드-혼인", "블라인드-종교", "블라인드-신체조건", "블라인드-경력경험"
+];
+
+const catSelect = document.getElementById("f-category");
+catSelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join("");
+
+function loadEntries(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }catch(e){ return []; }
+}
+function saveEntries(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+function genId(){ return "m-" + Date.now().toString(36) + Math.floor(Math.random()*1000); }
+
+let entries = loadEntries();
+
+function formatEntry(e){
+  return `# ${e.examId} - ${e.qnum}. ${e.content} / ${e.desc}`;
+}
+
+function updatePreview(){
+  const examId = document.getElementById("f-examId").value.trim() || "수험번호";
+  const qnum = document.getElementById("f-qnum").value.trim() || "문항";
+  const content = document.getElementById("f-content").value.trim() || "내용";
+  const desc = document.getElementById("f-desc").value.trim() || "설명";
+  document.getElementById("previewLine").textContent = `# ${examId} - ${qnum}. ${content} / ${desc}`;
+}
+["f-examId","f-qnum","f-content","f-desc"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updatePreview);
+});
+
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+function render(){
+  const listEl = document.getElementById("entryList");
+  document.getElementById("summaryText").textContent = `총 ${entries.length}건`;
+
+  if (entries.length === 0){
+    listEl.innerHTML = `<div class="empty-state">아직 기록된 특이사항이 없어요.</div>`;
+    return;
+  }
+
+  const groups = {};
+  entries.forEach(e => {
+    if (!groups[e.category]) groups[e.category] = [];
+    groups[e.category].push(e);
+  });
+
+  listEl.innerHTML = categories
+    .filter(c => groups[c])
+    .map(cat => `
+      <div class="category-group">
+        <div class="category-title">
+          <span>${cat} (${groups[cat].length})</span>
+          <button class="category-copy-btn" data-copy-cat="${cat}">이 카테고리만 복사</button>
+        </div>
+        ${groups[cat].map(e => `
+          <div class="entry-row" data-id="${e.id}">
+            <span class="entry-text">${escapeHtml(formatEntry(e))}</span>
+            <div class="entry-actions">
+              <button class="icon-btn" data-act="copy" title="복사">📋</button>
+              <button class="icon-btn del" data-act="delete" title="삭제">🗑</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+
+  bindEntryEvents();
+}
+
+function bindEntryEvents(){
+  document.querySelectorAll(".entry-row").forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('[data-act="copy"]').addEventListener("click", () => {
+      const e = entries.find(x => x.id === id);
+      copyText(formatEntry(e));
+    });
+    row.querySelector('[data-act="delete"]').addEventListener("click", () => {
+      entries = entries.filter(x => x.id !== id);
+      saveEntries(entries);
+      render();
+    });
+  });
+  document.querySelectorAll("[data-copy-cat]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const cat = btn.dataset.copyCat;
+      const text = entries.filter(e => e.category === cat).map(formatEntry).join("\n");
+      copyText(text);
+    });
+  });
+}
+
+function copyText(text){
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+document.getElementById("addBtn").addEventListener("click", () => {
+  const examId = document.getElementById("f-examId").value.trim();
+  const category = document.getElementById("f-category").value;
+  const qnum = document.getElementById("f-qnum").value.trim();
+  const content = document.getElementById("f-content").value.trim();
+  const desc = document.getElementById("f-desc").value.trim();
+  if (!examId || !content){ alert("수험번호랑 내용은 꼭 입력해주세요."); return; }
+
+  entries.unshift({ id:genId(), examId, category, qnum, content, desc });
+  saveEntries(entries);
+
+  document.getElementById("f-examId").value = "";
+  document.getElementById("f-qnum").value = "";
+  document.getElementById("f-content").value = "";
+  document.getElementById("f-desc").value = "";
+  updatePreview();
+  render();
+  document.getElementById("f-examId").focus();
+});
+
+document.getElementById("copyAllBtn").addEventListener("click", () => {
+  const text = entries.map(formatEntry).join("\n");
+  copyText(text);
+  const btn = document.getElementById("copyAllBtn");
+  btn.textContent = "복사됨 ✓";
+  btn.classList.add("copied");
+  setTimeout(() => { btn.textContent = "전체 복사"; btn.classList.remove("copied"); }, 1500);
+});
+
+document.getElementById("clearAllBtn").addEventListener("click", () => {
+  if (!confirm("기록된 특이사항을 전부 삭제할까요?")) return;
+  entries = [];
+  saveEntries(entries);
+  render();
+});
+
+updatePreview();
+render();
+</script>
+</body>
+</html>
