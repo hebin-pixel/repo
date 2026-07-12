@@ -269,6 +269,14 @@
   }
   .item-edit-btn:hover{ background:rgba(55,53,47,0.12); }
   .item-edit-btn.danger:hover{ background:#FBE4E6; color:#B23B4A; }
+  .confirm-armed{ background:#E85D8C !important; color:#fff !important; }
+
+  #appToast{
+    position:fixed; left:50%; bottom:20px; transform:translateX(-50%) translateY(10px);
+    background:var(--text); color:#fff; font-size:12.5px; padding:8px 16px; border-radius:20px;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:999; max-width:90%; text-align:center;
+  }
+  #appToast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .item-edit-btn.text-btn{ width:auto; padding:0 10px; font-size:11px; }
 
   .chip-toggle-wrap{ display:flex; flex-wrap:wrap; gap:5px; margin:5px 0 0 21px; }
@@ -510,6 +518,41 @@ function saveTemplate(){
 }
 function genId(prefix){
   return prefix + "-" + Date.now().toString(36) + Math.floor(Math.random()*1000);
+}
+
+// 노션 임베드(iframe) 안에서는 브라우저 기본 confirm()/alert() 팝업이 막히는 경우가 많아서
+// 팝업 없이 동작하는 "두번 클릭해 확인" / "토스트 알림" 방식으로 대체
+function confirmClick(btn, confirmLabel, onConfirm){
+  if (btn.dataset.confirmArmed === "1"){
+    clearTimeout(btn._confirmTimer);
+    delete btn.dataset.confirmArmed;
+    btn.textContent = btn.dataset.origLabel;
+    btn.classList.remove("confirm-armed");
+    onConfirm();
+    return;
+  }
+  btn.dataset.origLabel = btn.textContent;
+  btn.dataset.confirmArmed = "1";
+  btn.textContent = confirmLabel || "다시 클릭";
+  btn.classList.add("confirm-armed");
+  btn._confirmTimer = setTimeout(() => {
+    delete btn.dataset.confirmArmed;
+    btn.textContent = btn.dataset.origLabel;
+    btn.classList.remove("confirm-armed");
+  }, 2500);
+}
+
+function showToast(message){
+  let toast = document.getElementById("appToast");
+  if (!toast){
+    toast = document.createElement("div");
+    toast.id = "appToast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
 let { sections, qcCategories, pageTitle, taskFields } = loadTemplate();
@@ -994,11 +1037,13 @@ document.addEventListener("click", (e) => {
   const action = btn.dataset.editAction;
 
   if (action === "item-del"){
-    if (!confirm("이 항목을 삭제할까요?")) return;
-    const sec = sections.find(s => s.id === btn.dataset.section);
-    sec.items = sec.items.filter(it => it.id !== btn.dataset.itemId);
-    saveTemplate();
-    renderAll();
+    confirmClick(btn, "다시 클릭", () => {
+      const sec = sections.find(s => s.id === btn.dataset.section);
+      sec.items = sec.items.filter(it => it.id !== btn.dataset.itemId);
+      saveTemplate();
+      renderAll();
+    });
+    return;
   }
   if (action === "item-add"){
     const input = document.querySelector(`.add-item-input[data-section="${btn.dataset.section}"]`);
@@ -1010,10 +1055,12 @@ document.addEventListener("click", (e) => {
     renderAll();
   }
   if (action === "sec-del"){
-    if (!confirm("이 섹션 전체를 삭제할까요? 안에 있는 항목도 다 같이 삭제돼요.")) return;
-    sections = sections.filter(s => s.id !== btn.dataset.section);
-    saveTemplate();
-    renderAll();
+    confirmClick(btn, "다시 클릭(전체삭제)", () => {
+      sections = sections.filter(s => s.id !== btn.dataset.section);
+      saveTemplate();
+      renderAll();
+    });
+    return;
   }
   if (action === "section-add"){
     const input = document.querySelector(".add-section-input");
@@ -1024,12 +1071,14 @@ document.addEventListener("click", (e) => {
     renderAll();
   }
   if (action === "qc-cat-del"){
-    if (qcCategories.length <= 1){ alert("최소 1개는 남아있어야 해요."); return; }
-    if (!confirm("이 QC 카테고리를 삭제할까요?")) return;
-    qcCategories = qcCategories.filter(c => c.id !== btn.dataset.cat);
-    delete state.qcAssignees[btn.dataset.cat];
-    saveTemplate();
-    renderQcCategories();
+    if (qcCategories.length <= 1){ showToast("최소 1개는 남아있어야 해요."); return; }
+    confirmClick(btn, "다시 클릭", () => {
+      qcCategories = qcCategories.filter(c => c.id !== btn.dataset.cat);
+      delete state.qcAssignees[btn.dataset.cat];
+      saveTemplate();
+      renderQcCategories();
+    });
+    return;
   }
   if (action === "qc-cat-add"){
     const input = document.querySelector(".add-qc-cat-input");
@@ -1051,12 +1100,14 @@ document.addEventListener("click", (e) => {
     loadCurrent();
   }
   if (action === "field-del"){
-    if (taskFields.length <= 1){ alert("최소 1개는 남아있어야 해요."); return; }
-    if (!confirm("이 필드를 삭제할까요?")) return;
-    taskFields = taskFields.filter(f => f.id !== btn.dataset.fieldId);
-    saveTemplate();
-    renderTaskFields();
-    loadCurrent();
+    if (taskFields.length <= 1){ showToast("최소 1개는 남아있어야 해요."); return; }
+    confirmClick(btn, "다시 클릭", () => {
+      taskFields = taskFields.filter(f => f.id !== btn.dataset.fieldId);
+      saveTemplate();
+      renderTaskFields();
+      loadCurrent();
+    });
+    return;
   }
 });
 
@@ -1226,10 +1277,11 @@ document.getElementById("pageTitleInput").addEventListener("input", (e) => {
   saveTemplate();
 });
 
-document.getElementById("resetTemplateBtn").addEventListener("click", () => {
-  if (!confirm("편집한 섹션/항목 구성을 기본값으로 되돌릴까요? (체크 기록·지난 기록은 유지돼요)")) return;
-  localStorage.removeItem(TEMPLATE_KEY);
-  location.reload();
+document.getElementById("resetTemplateBtn").addEventListener("click", (e) => {
+  confirmClick(e.target, "다시 클릭하면 초기화", () => {
+    localStorage.removeItem(TEMPLATE_KEY);
+    location.reload();
+  });
 });
 
 function openMemoEdit(el){
@@ -1755,11 +1807,11 @@ function renderHistory(){
 
   const clearBtn = document.getElementById("clearHistoryBtn");
   if (clearBtn){
-    clearBtn.addEventListener("click", () => {
-      if (confirm("저장된 과업 기록을 전부 삭제할까요?")){
+    clearBtn.addEventListener("click", (e) => {
+      confirmClick(e.target, "다시 클릭(전체삭제)", () => {
         localStorage.removeItem(HISTORY_KEY);
         renderHistory();
-      }
+      });
     });
   }
 }
@@ -1825,53 +1877,53 @@ document.getElementById("historyPanel").addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("resetBtn").addEventListener("click", () => {
-  if (!confirm("현재 체크리스트를 '지난 기록'에 저장하고 새 과업을 위해 초기화할까요?")) return;
+document.getElementById("resetBtn").addEventListener("click", (e) => {
+  confirmClick(e.target, "다시 클릭(완료)", () => {
+    const rows = container.querySelectorAll(".item");
+    let total = 0, checked = 0;
+    rows.forEach(row => {
+      if (row.classList.contains("excluded")) return;
+      total++;
+      if (row.querySelector("input[type=checkbox]").checked) checked++;
+    });
 
-  const rows = container.querySelectorAll(".item");
-  let total = 0, checked = 0;
-  rows.forEach(row => {
-    if (row.classList.contains("excluded")) return;
-    total++;
-    if (row.querySelector("input[type=checkbox]").checked) checked++;
-  });
+    const itemSnapshot = {};
+    container.querySelectorAll(".item").forEach(row => {
+      itemSnapshot[row.dataset.id] = {
+        checked: row.querySelector("input[type=checkbox]").checked,
+        excluded: row.classList.contains("excluded")
+      };
+    });
+    const memoSnapshot = {};
+    container.querySelectorAll(".memo-input").forEach(inp => {
+      if (inp.value.trim()) memoSnapshot[inp.dataset.memoId] = inp.value;
+    });
 
-  const itemSnapshot = {};
-  container.querySelectorAll(".item").forEach(row => {
-    itemSnapshot[row.dataset.id] = {
-      checked: row.querySelector("input[type=checkbox]").checked,
-      excluded: row.classList.contains("excluded")
+    const fieldSnapshot = {};
+    const fieldLabelSnapshot = {};
+    taskFields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el) fieldSnapshot[f.id] = el.value;
+      fieldLabelSnapshot[f.id] = f.label;
+    });
+
+    const entry = {
+      taskName: document.getElementById("taskName").value || "(이름 없는 과업)",
+      fields: fieldSnapshot,
+      fieldLabels: fieldLabelSnapshot,
+      qcAssignees: state.qcAssignees,
+      date: new Date().toLocaleString("ko-KR"),
+      total, checked,
+      items: itemSnapshot,
+      memos: memoSnapshot
     };
-  });
-  const memoSnapshot = {};
-  container.querySelectorAll(".memo-input").forEach(inp => {
-    if (inp.value.trim()) memoSnapshot[inp.dataset.memoId] = inp.value;
-  });
+    const history = getHistory();
+    history.unshift(entry);
+    saveHistory(history);
 
-  const fieldSnapshot = {};
-  const fieldLabelSnapshot = {};
-  taskFields.forEach(f => {
-    const el = document.getElementById(f.id);
-    if (el) fieldSnapshot[f.id] = el.value;
-    fieldLabelSnapshot[f.id] = f.label;
+    localStorage.removeItem(CURRENT_KEY);
+    location.reload();
   });
-
-  const entry = {
-    taskName: document.getElementById("taskName").value || "(이름 없는 과업)",
-    fields: fieldSnapshot,
-    fieldLabels: fieldLabelSnapshot,
-    qcAssignees: state.qcAssignees,
-    date: new Date().toLocaleString("ko-KR"),
-    total, checked,
-    items: itemSnapshot,
-    memos: memoSnapshot
-  };
-  const history = getHistory();
-  history.unshift(entry);
-  saveHistory(history);
-
-  localStorage.removeItem(CURRENT_KEY);
-  location.reload();
 });
 
 loadCurrent();
