@@ -24,7 +24,7 @@
   .wrap{max-width:600px; margin:0 auto;}
   .page-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px; }
   .page-title-input{
-    flex:1; min-width:0; font-size:15px; font-weight:600; border:none; background:transparent;
+    flex:0 1 auto; width:auto; min-width:80px; font-size:15px; font-weight:600; border:none; background:transparent;
     color:var(--text); font-family:inherit; padding:2px 0; cursor:default;
   }
   .page-title-input:focus{ outline:none; }
@@ -805,8 +805,14 @@ function renderSection(sec){
   container.appendChild(secEl);
 }
 
+function sizeTitleInput(){
+  const el = document.getElementById("pageTitleInput");
+  el.style.width = Math.max(el.value.length, 4) + 1.5 + "ch";
+}
+
 function renderAll(){
   document.getElementById("pageTitleInput").value = pageTitle;
+  sizeTitleInput();
   container.innerHTML = "";
   sections.forEach(renderSection);
   const addSecRow = document.createElement("div");
@@ -1077,6 +1083,20 @@ function flipAnimate(parentEl, mutateFn){
 
 const dragState = { type:null, id:null, section:null };
 
+// 입력창(input/select/textarea) 안에서 시작한 마우스다운은 텍스트 선택이 되도록 드래그 비활성화,
+// 그 외 바의 여백을 잡았을 때만 드래그 가능하게 전환
+document.addEventListener("mousedown", (e) => {
+  const row = e.target.closest(".item-edit-row, .section-edit-row, .qc-edit-row, .field-edit-row");
+  if (!row) return;
+  const isFormEl = e.target.matches("input, select, textarea, button");
+  row.draggable = !isFormEl;
+});
+document.addEventListener("mouseup", () => {
+  document.querySelectorAll(".item-edit-row, .section-edit-row, .qc-edit-row, .field-edit-row").forEach(row => {
+    row.draggable = true;
+  });
+});
+
 document.addEventListener("dragstart", (e) => {
   if (!editMode) return;
   const itemRow = e.target.closest(".item-edit-row");
@@ -1199,6 +1219,7 @@ document.getElementById("editModeBtn").addEventListener("click", () => {
 
 document.getElementById("pageTitleInput").addEventListener("input", (e) => {
   pageTitle = e.target.value;
+  sizeTitleInput();
   saveTemplate();
 });
 
