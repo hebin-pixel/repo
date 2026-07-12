@@ -115,7 +115,7 @@
   .section-body{ padding:0 10px 8px; }
   .section.collapsed .section-body{ display:none; }
 
-  .phase-tag{ font-size:9.5px; padding:1px 7px; border-radius:20px; font-weight:500; }
+  .phase-tag{ font-size:9.5px; padding:1px 7px; border-radius:20px; font-weight:500; background:var(--prep-bg); color:var(--prep-text); transition:background-color .15s, color .15s; }
   .opt-badge{ font-size:9px; padding:1px 6px; border-radius:20px; background:#FAEEDA; color:#854F0B; font-weight:500; }
 
   .item-wrap{ padding:3px 0; }
@@ -126,6 +126,14 @@
   .item.excluded{ opacity:.45; }
   .item.excluded label{ text-decoration:line-through; }
   .item.excluded input[type="checkbox"]{ pointer-events:none; }
+  .item-wrap.item-hidden{ display:none; }
+
+  .excluded-badge{
+    display:none; width:24px; height:24px; align-items:center; justify-content:center;
+    font-size:12px; color:var(--text-sub); background:none; border:none; border-radius:6px;
+    cursor:pointer; flex-shrink:0; padding:0; transition:background-color .15s;
+  }
+  .excluded-badge:hover{ background:var(--hover); }
 
   .memo-btn, .excl-btn, .link-btn{
     flex-shrink:0; font-size:10.5px; background:none; border:none; border-radius:5px;
@@ -141,7 +149,7 @@
   .memo-input{
     display:none; width:calc(100% - 19px); margin:4px 0 0 19px; padding:4px 8px; font-size:11.5px;
     border:1px solid var(--border); border-radius:5px; background:var(--bg); color:var(--text);
-    font-family:inherit;
+    font-family:inherit; resize:none; overflow:hidden; line-height:1.5;
   }
   .item-wrap.memo-open .memo-input{ display:block; }
   .memo-input:focus{ outline:none; border-color:var(--accent); }
@@ -149,8 +157,9 @@
   .memo-preview{
     display:none; margin:4px 0 0 19px; padding:3px 8px; font-size:11.5px; color:var(--text-sub);
     cursor:pointer; border-radius:5px; background:var(--bg); border:1px dashed var(--border);
+    white-space:pre-wrap; line-height:1.5;
   }
-  .memo-preview:hover{ background:var(--hover); }
+  .memo-preview:hover, .memo-preview:focus{ background:var(--hover); outline:none; }
   .item-wrap.has-memo:not(.memo-open) .memo-preview{ display:block; }
 
   .footer-actions{ display:flex; justify-content:center; gap:6px; margin-top:12px; }
@@ -176,7 +185,7 @@
 
   <div class="section meta-section" id="metaSection">
     <div class="section-head" id="metaHead">
-      <div class="section-title"><span>📋 과업 정보 &amp; QC 담당자</span></div>
+      <div class="section-title"><span id="metaTitle">📋 과업 정보 &amp; QC 담당자</span></div>
       <span class="section-chev" id="metaChev">▾</span>
     </div>
     <div class="section-body" id="metaBody">
@@ -285,7 +294,7 @@ const sections = [
     { t:"스테이징 업로드 및 결과 확인", url:"https://staging.deepselect.net/" },
     { t:"딥셀렉 업로드 및 결과 확인", url:"https://www.deepselect.net/" }
   ]},
-  { id:"s10", tag:"업로드", tagClass:"after", title:"10. 검토 및 링크 반영", items:[
+  { id:"s10", tag:"검토", tagClass:"after", title:"10. 검토 및 링크 반영", items:[
     { t:"검출 개수와 하이라이팅 개수 일치 확인" },
     { t:"태그 위치 올바른지 확인 (이중 태그 주의)" },
     { t:"검사결과서 링크 다운로드 후 setting 파일에 반영" }
@@ -460,8 +469,8 @@ function renderItem(sec, item, index){
       <button class="memo-btn" data-action="toggle-memo" data-id="${id}" title="메모">✎</button>
       <button class="excl-btn" data-action="exclude" data-id="${id}">제외</button>
     </div>
-    <input type="text" class="memo-input" data-memo-id="${id}" placeholder="메모 작성 후 Enter">
-    <span class="memo-preview" data-memo-id="${id}"></span>
+    <textarea class="memo-input" data-memo-id="${id}" placeholder="메모 작성 후 Enter, 줄바꿈은 Shift+Enter" rows="1"></textarea>
+    <span class="memo-preview" data-memo-id="${id}" tabindex="0"></span>
   `;
   return wrap;
 }
@@ -470,17 +479,17 @@ function renderSection(sec){
   const secEl = document.createElement("div");
   secEl.className = "section phase-" + (sec.tagClass || "prep");
   secEl.id = "section-" + sec.id;
-  const c = sectionColors[sec.id];
 
   const head = document.createElement("div");
   head.className = "section-head";
   head.innerHTML = `
     <div class="section-title">
-      <span class="phase-tag" style="background:${c.bg}; color:${c.text};">${sec.tag}</span>
+      <span class="phase-tag" id="tag-${sec.id}">${sec.tag}</span>
       <span>${sec.title}</span>
       <span class="section-count" id="count-${sec.id}"></span>
     </div>
     <div class="section-right">
+      <button class="excluded-badge" id="excluded-badge-${sec.id}" data-action="restore-all" data-section="${sec.id}" title="제외된 항목 모두 복원">↺</button>
       <button class="select-all-btn" data-action="select-all" data-section="${sec.id}" title="이 섹션 전체 체크/해제">✓</button>
       <span class="section-chev">▾</span>
     </div>
@@ -503,6 +512,16 @@ function renderSection(sec){
 
 sections.forEach(renderSection);
 
+function openMemoEdit(el){
+  const wrap = el.closest(".item-wrap");
+  wrap.classList.add("memo-open");
+  const input = wrap.querySelector(".memo-input");
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  input.style.height = "auto";
+  input.style.height = input.scrollHeight + "px";
+}
+
 container.addEventListener("click", (e) => {
   const linkBtn = e.target.closest(".link-btn");
   if (linkBtn){
@@ -512,11 +531,7 @@ container.addEventListener("click", (e) => {
 
   const preview = e.target.closest(".memo-preview");
   if (preview){
-    const wrap = preview.closest(".item-wrap");
-    wrap.classList.add("memo-open");
-    const input = wrap.querySelector(".memo-input");
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
+    openMemoEdit(preview);
     return;
   }
 
@@ -527,10 +542,31 @@ container.addEventListener("click", (e) => {
   if (action === "exclude"){
     const id = btn.dataset.id;
     const row = container.querySelector(`.item[data-id="${id}"]`);
+    const wrap = row.closest(".item-wrap");
     const isExcluded = row.classList.toggle("excluded");
     const cb = row.querySelector("input[type=checkbox]");
-    if (isExcluded){ cb.checked = false; btn.textContent = "복원"; }
-    else { btn.textContent = "제외"; }
+    if (isExcluded){
+      cb.checked = false;
+      btn.textContent = "복원";
+      wrap.classList.add("item-hidden");
+    } else {
+      btn.textContent = "제외";
+      wrap.classList.remove("item-hidden");
+    }
+    updateExcludedBadge(row.dataset.section);
+    updateProgress();
+    saveCurrent();
+  }
+
+  if (action === "restore-all"){
+    const sectionId = btn.dataset.section;
+    container.querySelectorAll(`.item[data-section="${sectionId}"].excluded`).forEach(row => {
+      row.classList.remove("excluded");
+      row.closest(".item-wrap").classList.remove("item-hidden");
+      const exclBtn = row.querySelector(".excl-btn");
+      if (exclBtn) exclBtn.textContent = "제외";
+    });
+    updateExcludedBadge(sectionId);
     updateProgress();
     saveCurrent();
   }
@@ -539,7 +575,10 @@ container.addEventListener("click", (e) => {
     const wrap = btn.closest(".item-wrap");
     wrap.classList.toggle("memo-open");
     if (wrap.classList.contains("memo-open")){
-      wrap.querySelector(".memo-input").focus();
+      const ta = wrap.querySelector(".memo-input");
+      ta.focus();
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
     }
   }
 
@@ -561,30 +600,62 @@ container.addEventListener("change", (e) => {
 });
 container.addEventListener("input", (e) => {
   if (e.target.matches(".memo-input")){
-    const id = e.target.dataset.memoId;
-    const wrap = e.target.closest(".item-wrap");
+    const ta = e.target;
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+
+    const id = ta.dataset.memoId;
+    const wrap = ta.closest(".item-wrap");
     const memoBtn = container.querySelector(`.memo-btn[data-id="${id}"]`);
     const preview = wrap.querySelector(".memo-preview");
-    const val = e.target.value.trim();
-    const hasMemo = val.length > 0;
+    const val = ta.value;
+    const hasMemo = val.trim().length > 0;
     if (memoBtn) memoBtn.classList.toggle("has-memo", hasMemo);
     wrap.classList.toggle("has-memo", hasMemo);
-    if (preview) preview.textContent = val.length > 40 ? val.slice(0, 40) + "…" : val;
+    if (preview) preview.textContent = val.length > 120 ? val.slice(0, 120) + "…" : val;
     saveCurrent();
   }
 });
 container.addEventListener("keydown", (e) => {
-  if (e.target.matches(".memo-input") && e.key === "Enter"){
-    const wrap = e.target.closest(".item-wrap");
+  if (e.target.matches(".memo-preview") && e.key === "Enter"){
+    openMemoEdit(e.target);
+    return;
+  }
+  if (!e.target.matches(".memo-input")) return;
+  const ta = e.target;
+
+  if (e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    const wrap = ta.closest(".item-wrap");
     wrap.classList.remove("memo-open");
-    e.target.blur();
+    ta.blur();
     saveCurrent();
+    return;
+  }
+
+  if (e.key === " "){
+    const pos = ta.selectionStart;
+    const lineStart = ta.value.lastIndexOf("\n", pos - 1) + 1;
+    const currentLine = ta.value.slice(lineStart, pos);
+    if (currentLine === "-"){
+      e.preventDefault();
+      ta.value = ta.value.slice(0, lineStart) + "• " + ta.value.slice(pos);
+      const newPos = lineStart + 2;
+      ta.setSelectionRange(newPos, newPos);
+      ta.dispatchEvent(new Event("input", { bubbles:true }));
+    }
   }
 });
+
+function updateMetaTitle(){
+  const name = document.getElementById("taskName").value.trim();
+  document.getElementById("metaTitle").textContent = name ? `📋 ${name}` : "📋 과업 정보 & QC 담당자";
+}
 
 ["taskName","taskOwner","taskRate"].forEach(id => {
   document.getElementById(id).addEventListener("input", saveCurrent);
 });
+document.getElementById("taskName").addEventListener("input", updateMetaTitle);
 ["taskDeadline","taskDelivery"].forEach(id => {
   document.getElementById(id).addEventListener("change", saveCurrent);
 });
@@ -614,6 +685,13 @@ function updateExpandLabel(){
   document.getElementById("expandAllIcon").classList.toggle("rotated", anyCollapsed);
 }
 
+function updateExcludedBadge(sectionId){
+  const badge = document.getElementById("excluded-badge-" + sectionId);
+  if (!badge) return;
+  const excludedCount = container.querySelectorAll(`.item[data-section="${sectionId}"].excluded`).length;
+  badge.style.display = excludedCount === 0 ? "none" : "flex";
+}
+
 function updateProgress(){
   const rows = container.querySelectorAll(".item");
   let total = 0, checked = 0;
@@ -641,6 +719,17 @@ function updateProgress(){
     const selBtn = document.querySelector(`.select-all-btn[data-section="${sec.id}"]`);
     const secDone = secRows.length > 0 && secChecked.length === secRows.length;
     if (selBtn) selBtn.classList.toggle("all-checked", secDone);
+
+    const tagEl = document.getElementById(`tag-${sec.id}`);
+    if (tagEl){
+      if (secChecked.length > 0){
+        tagEl.style.background = sectionColors[sec.id].bg;
+        tagEl.style.color = sectionColors[sec.id].text;
+      } else {
+        tagEl.style.background = "";
+        tagEl.style.color = "";
+      }
+    }
 
     if (allDone){
       applySectionColor(sec.id, successColor);
@@ -708,10 +797,12 @@ function loadCurrent(){
         const row = container.querySelector(`.item[data-id="${id}"]`);
         if (row){
           row.classList.add("excluded");
+          row.closest(".item-wrap").classList.add("item-hidden");
           const btn = row.querySelector(".excl-btn");
           if (btn) btn.textContent = "복원";
         }
       });
+      sections.forEach(sec => updateExcludedBadge(sec.id));
     }
     if (data.memos){
       Object.keys(data.memos).forEach(id => {
@@ -724,7 +815,7 @@ function loadCurrent(){
           const preview = wrap.querySelector(".memo-preview");
           if (memoBtn) memoBtn.classList.add("has-memo");
           wrap.classList.add("has-memo");
-          if (preview) preview.textContent = val.length > 40 ? val.slice(0, 40) + "…" : val;
+          if (preview) preview.textContent = val.length > 120 ? val.slice(0, 120) + "…" : val;
         }
       });
     }
@@ -820,6 +911,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 });
 
 loadCurrent();
+updateMetaTitle();
 updateProgress();
 updateExpandLabel();
 </script>
