@@ -133,7 +133,8 @@
   .section-body{ padding:0 10px 8px; }
   .section.collapsed .section-body{ display:none; }
 
-  .phase-tag{ font-size:9.5px; padding:1px 7px; border-radius:20px; font-weight:500; background:var(--prep-bg); color:var(--prep-text); transition:background-color .15s, color .15s; }
+  .phase-tag{ font-size:9.5px; padding:1px 7px; border-radius:20px; font-weight:500; background:var(--prep-bg); color:var(--prep-text); transition:background-color .15s, color .15s; cursor:pointer; }
+  .phase-tag:hover{ box-shadow:inset 0 0 0 1px currentColor; }
   .opt-badge{ font-size:9px; padding:1px 6px; border-radius:20px; background:#FAEEDA; color:#854F0B; font-weight:500; }
 
   .item-wrap{ padding:3px 0; }
@@ -162,7 +163,7 @@
   .memo-btn{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; padding:0; font-size:12px; }
   .memo-btn:hover, .excl-btn:hover{ background:var(--hover); }
   .memo-btn.has-memo{ background:#EEEDFE; color:#3C3489; }
-  .excl-btn{ padding:2px 7px; border-radius:20px; }
+  .excl-btn{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; padding:0; font-size:12px; }
 
   .memo-input{
     display:none; width:calc(100% - 19px); margin:4px 0 0 19px; padding:4px 8px; font-size:11.5px;
@@ -268,6 +269,7 @@
   }
   .item-edit-btn:hover{ background:rgba(55,53,47,0.12); }
   .item-edit-btn.danger:hover{ background:#FBE4E6; color:#B23B4A; }
+  .item-edit-btn.text-btn{ width:auto; padding:0 10px; font-size:11px; }
 
   .chip-toggle-wrap{ display:flex; flex-wrap:wrap; gap:5px; margin:5px 0 0 21px; }
   .blind-chip{
@@ -587,7 +589,7 @@ function renderQcCategories(){
       <input type="text" class="chip-input" data-cat="${cat.id}" placeholder="이름 입력 후 Enter">
       <div class="qc-edit-row" draggable="true" data-cat="${cat.id}">
         <input type="text" class="qc-edit-label" data-cat="${cat.id}" value="${cat.label.replace(/"/g,"&quot;")}" placeholder="카테고리 이름">
-        <button class="item-edit-btn danger" data-edit-action="qc-cat-del" data-cat="${cat.id}" title="카테고리 삭제">🗑</button>
+        <button class="item-edit-btn danger text-btn" data-edit-action="qc-cat-del" data-cat="${cat.id}" title="카테고리 삭제">삭제</button>
       </div>
     `;
     qcWrap.appendChild(row);
@@ -618,7 +620,7 @@ function renderTaskFields(){
           <option value="text" ${f.type==="text"?"selected":""}>글자</option>
           <option value="date" ${f.type==="date"?"selected":""}>날짜</option>
         </select>
-        <button class="item-edit-btn danger" data-edit-action="field-del" data-field-id="${f.id}" title="필드 삭제">🗑</button>
+        <button class="item-edit-btn danger text-btn" data-edit-action="field-del" data-field-id="${f.id}" title="필드 삭제">삭제</button>
       </div>
     `;
     wrap.appendChild(row);
@@ -737,7 +739,7 @@ function renderItem(sec, item, index){
       <label for="chk-${id}">${item.t} ${optBadge}</label>
       ${linkBtn}
       <button class="memo-btn" data-action="toggle-memo" data-id="${id}" title="메모">✎</button>
-      <button class="excl-btn" data-action="exclude" data-id="${id}">제외</button>
+      <button class="excl-btn" data-action="exclude" data-id="${id}" title="제외">×</button>
     </div>
     ${chipToggleHtml}
     ${chipEditHtml}
@@ -747,7 +749,7 @@ function renderItem(sec, item, index){
       <input type="text" class="item-edit-text" data-item-id="${id}" data-section="${sec.id}" value="${item.t.replace(/"/g,"&quot;")}">
       <label class="item-edit-opt-label"><input type="checkbox" class="item-edit-opt" data-item-id="${id}" data-section="${sec.id}" ${item.opt?"checked":""}> 옵션</label>
       <input type="text" class="item-edit-url" data-item-id="${id}" data-section="${sec.id}" value="${item.url||""}" placeholder="URL (선택)">
-      <button class="item-edit-btn danger" data-edit-action="item-del" data-item-id="${id}" data-section="${sec.id}" title="삭제">🗑</button>
+      <button class="item-edit-btn danger text-btn" data-edit-action="item-del" data-item-id="${id}" data-section="${sec.id}" title="삭제">삭제</button>
     </div>
   `;
   return wrap;
@@ -763,7 +765,7 @@ function renderSection(sec){
   head.className = "section-head";
   head.innerHTML = `
     <div class="section-title">
-      <span class="phase-tag" id="tag-${sec.id}">${sec.tag}</span>
+      <span class="phase-tag" id="tag-${sec.id}" title="클릭하면 같은 카테고리 전체 펼치기/접기">${sec.tag}</span>
       <span id="title-${sec.id}">${sec.title}</span>
       <span class="section-count" id="count-${sec.id}"></span>
     </div>
@@ -774,7 +776,7 @@ function renderSection(sec){
     </div>
   `;
   head.addEventListener("click", (e) => {
-    if (e.target.closest("button")) return;
+    if (e.target.closest("button, .phase-tag")) return;
     secEl.classList.toggle("collapsed");
     updateExpandLabel();
   });
@@ -786,7 +788,7 @@ function renderSection(sec){
   editRow.innerHTML = `
     <input type="text" class="section-edit-tag" data-section="${sec.id}" value="${sec.tag}" placeholder="배지">
     <input type="text" class="section-edit-title" data-section="${sec.id}" value="${sec.title.replace(/"/g,"&quot;")}" placeholder="섹션 제목">
-    <button class="item-edit-btn danger" data-edit-action="sec-del" data-section="${sec.id}" title="섹션 삭제">🗑</button>
+    <button class="item-edit-btn danger text-btn" data-edit-action="sec-del" data-section="${sec.id}" title="섹션 삭제">삭제</button>
   `;
 
   const body = document.createElement("div");
@@ -1099,6 +1101,7 @@ document.addEventListener("mouseup", () => {
 
 document.addEventListener("dragstart", (e) => {
   if (!editMode) return;
+  if (e.target.closest("button, input, select, textarea")){ e.preventDefault(); return; }
   const itemRow = e.target.closest(".item-edit-row");
   const secRow = e.target.closest(".section-edit-row");
   const qcRow = e.target.closest(".qc-edit-row");
@@ -1286,10 +1289,8 @@ container.addEventListener("click", (e) => {
     const cb = row.querySelector("input[type=checkbox]");
     if (isExcluded){
       cb.checked = false;
-      btn.textContent = "복원";
       wrap.classList.add("item-hidden");
     } else {
-      btn.textContent = "제외";
       wrap.classList.remove("item-hidden");
     }
     updateExcludedBadge(row.dataset.section);
@@ -1302,8 +1303,6 @@ container.addEventListener("click", (e) => {
     container.querySelectorAll(`.item[data-section="${sectionId}"].excluded`).forEach(row => {
       row.classList.remove("excluded");
       row.closest(".item-wrap").classList.remove("item-hidden");
-      const exclBtn = row.querySelector(".excl-btn");
-      if (exclBtn) exclBtn.textContent = "제외";
     });
     updateExcludedBadge(sectionId);
     updateProgress();
@@ -1435,6 +1434,23 @@ function updateExpandLabel(){
   const anyCollapsed = [...document.querySelectorAll(".section:not(.meta-section)")].some(s => s.classList.contains("collapsed"));
   document.getElementById("expandAllIcon").classList.toggle("rotated", anyCollapsed);
 }
+
+document.addEventListener("click", (e) => {
+  const tag = e.target.closest(".phase-tag");
+  if (!tag) return;
+  const tagText = tag.textContent.trim();
+  const matching = sections.filter(s => s.tag === tagText);
+  if (matching.length === 0) return;
+  const anyExpanded = matching.some(s => {
+    const el = document.getElementById("section-" + s.id);
+    return el && !el.classList.contains("collapsed");
+  });
+  matching.forEach(s => {
+    const el = document.getElementById("section-" + s.id);
+    if (el) el.classList.toggle("collapsed", anyExpanded);
+  });
+  updateExpandLabel();
+});
 
 function updateExcludedBadge(sectionId){
   const badge = document.getElementById("excluded-badge-" + sectionId);
@@ -1572,8 +1588,6 @@ function loadCurrent(){
         if (row){
           row.classList.add("excluded");
           row.closest(".item-wrap").classList.add("item-hidden");
-          const btn = row.querySelector(".excl-btn");
-          if (btn) btn.textContent = "복원";
         }
       });
       sections.forEach(sec => updateExcludedBadge(sec.id));
