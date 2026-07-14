@@ -15,17 +15,31 @@
     --after-strong:#4E86C9; --after-bg:#DCEBFA; --after-text:#2E5F94;
     --settle-strong:#C79233; --settle-bg:#F7E7C8; --settle-text:#8A5F17;
   }
+  body.dark-mode{
+    --bg:#191919; --card:#232323; --border:#373737; --text:#E9E9E7; --text-sub:rgba(233,233,231,0.6);
+    --hover:rgba(255,255,255,0.06);
+    --accent:#4DA3F5;
+    --success:#E87DA8; --success-strong:#E87DA8; --success-bg:#33202A; --success-text:#F5A8C6;
+    --prep-strong:#8D8B82; --prep-bg:#2A2A28; --prep-text:#B9B7AE;
+    --qc-strong:#8177DA; --qc-bg:#28243F; --qc-text:#C1BAF2;
+    --after-strong:#4E86C9; --after-bg:#1B2A3A; --after-text:#9CC5EE;
+    --settle-strong:#C79233; --settle-bg:#2E260F; --settle-text:#EFCF8E;
+  }
+  body.dark-mode .opt-badge{ background:#4A3418; color:#F0C989; }
+  body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator{ filter:invert(1) brightness(1.4); }
   *{box-sizing:border-box;}
   body{
-    margin:0; padding:10px 12px 24px; background:var(--bg); color:var(--text);
+    margin:0; padding:24px 12px 24px; background:var(--bg); color:var(--text);
     font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
     line-height:1.5; font-size:14px;
+    transition:background-color .15s, color .15s;
   }
   .wrap{max-width:600px; margin:0 auto;}
-  .page-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px; }
+  .page-header{ display:flex; align-items:center; gap:8px; margin:0 0 10px; padding-right:28px; }
   .page-title-input{
-    flex:0 1 auto; width:auto; min-width:80px; font-size:15px; font-weight:600; border:none; background:transparent;
+    flex:1 1 auto; width:auto; min-width:0; font-size:15px; font-weight:600; border:none; background:transparent;
     color:var(--text); font-family:inherit; padding:2px 0; cursor:default;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
   .page-title-input:focus{ outline:none; }
   body.edit-mode .page-title-input{
@@ -334,6 +348,7 @@
 <div class="wrap">
   <div class="page-header">
     <input type="text" id="pageTitleInput" class="page-title-input" value="S파트 과업 체크리스트" readonly>
+    <button class="icon-round-btn" id="darkModeBtn" title="다크모드 전환" style="box-shadow:inset 0 0 0 1px var(--border); flex-shrink:0;">🌙</button>
     <button class="edit-mode-toggle-btn" id="editModeBtn" title="편집 모드">편집</button>
   </div>
 
@@ -383,6 +398,16 @@
 </div>
 
 <script>
+const DARK_KEY = "sPart_checklist_dark_mode";
+(function initDarkMode(){
+  let saved = null;
+  try{ saved = localStorage.getItem(DARK_KEY); }catch(e){}
+  const isDark = saved === null
+    ? window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+    : saved === "1";
+  if (isDark) document.body.classList.add("dark-mode");
+})();
+
 const DEFAULT_SECTIONS = [
   { id:"s1", tag:"준비", tagClass:"", title:"1. 심사 기준 전달받기", items:[
     { id:"s1-0", t:"심사 기준 문서 확보 (자사명 인정범위 포함, 구체적일수록 좋음)" },
@@ -559,7 +584,7 @@ let { sections, qcCategories, pageTitle, taskFields } = loadTemplate();
 let editMode = false;
 
 // 섹션별 완료 색상 (같은 파트 안에서도 톤을 다르게) — 기본 섹션용 고정 팔레트
-const sectionColors = {
+const sectionColorsLight = {
   s1:  { strong:"#C7BCF2", bg:"#F3F0FD", text:"#5C4C9E" },
   s2:  { strong:"#B4A5EE", bg:"#EFEAFC", text:"#4E3D93" },
   s3:  { strong:"#A08DE8", bg:"#EAE2FA", text:"#432F86" },
@@ -573,15 +598,40 @@ const sectionColors = {
   s11: { strong:"#2E6FB0", bg:"#D7E6F5", text:"#1C4571" },
   s12: { strong:"#D8A94A", bg:"#F8ECD2", text:"#8A5F17" }
 };
-const successColor = { strong:"#E85D8C", bg:"#FDEAF1", text:"#B23B69" };
+const sectionColorsDark = {
+  s1:  { strong:"#8D7FE0", bg:"#2A2340", text:"#C9BFFF" },
+  s2:  { strong:"#8672DA", bg:"#282136", text:"#C7BAF7" },
+  s3:  { strong:"#8064D6", bg:"#251E33", text:"#C2AEF5" },
+  s4:  { strong:"#7A5ACF", bg:"#211B31", text:"#BCA3F2" },
+  s5:  { strong:"#A9C15A", bg:"#2B3018", text:"#D6E79C" },
+  s6:  { strong:"#9BB84A", bg:"#272C15", text:"#CFDD8E" },
+  s7:  { strong:"#8CA93E", bg:"#232712", text:"#C3D480" },
+  s8:  { strong:"#7C9832", bg:"#1F220F", text:"#B4C56E" },
+  s9:  { strong:"#5FA8E0", bg:"#182530", text:"#A9D4F5" },
+  s10: { strong:"#4E93D0", bg:"#16212C", text:"#9BC7EE" },
+  s11: { strong:"#3C7CB8", bg:"#131C26", text:"#83B3E0" },
+  s12: { strong:"#D9AA55", bg:"#2E260F", text:"#EFCF8E" }
+};
+const successColorLight = { strong:"#E85D8C", bg:"#FDEAF1", text:"#B23B69" };
+const successColorDark = { strong:"#E87DA8", bg:"#33202A", text:"#F5A8C6" };
 
-// 커스텀(새로 추가한) 섹션을 위한 색상 자동 생성 - id 기준으로 고정된 색을 만들어 매번 동일하게 보이도록 함
+function isDarkMode(){ return document.body.classList.contains("dark-mode"); }
+function getSuccessColor(){ return isDarkMode() ? successColorDark : successColorLight; }
+
+// 커스텀(새로 추가한) 섹션을 위한 색상 자동 생성 - id 기준으로 고정된 hue를 만들어 매번 동일하게 보이도록 함
 function hashHue(str){
   let h = 0;
   for (let i = 0; i < str.length; i++){ h = (h * 31 + str.charCodeAt(i)) % 360; }
   return Math.abs(h) % 360;
 }
-function makeColor(hue){
+function makeColor(hue, dark){
+  if (dark){
+    return {
+      strong: `hsl(${hue} 55% 60%)`,
+      bg: `hsl(${hue} 40% 18%)`,
+      text: `hsl(${hue} 70% 78%)`
+    };
+  }
   return {
     strong: `hsl(${hue} 55% 55%)`,
     bg: `hsl(${hue} 68% 93%)`,
@@ -589,9 +639,11 @@ function makeColor(hue){
   };
 }
 function getColor(sec){
-  if (sectionColors[sec.id]) return sectionColors[sec.id];
-  if (!sec.color) sec.color = makeColor(hashHue(sec.id));
-  return sec.color;
+  const dark = isDarkMode();
+  const table = dark ? sectionColorsDark : sectionColorsLight;
+  if (table[sec.id]) return table[sec.id];
+  if (sec.hue === undefined) sec.hue = hashHue(sec.id);
+  return makeColor(sec.hue, dark);
 }
 
 function applySectionColor(secId, color){
@@ -1263,6 +1315,32 @@ document.addEventListener("drop", (e) => {
   }
 });
 
+function updateDarkModeBtn(){
+  const isDark = document.body.classList.contains("dark-mode");
+  const btn = document.getElementById("darkModeBtn");
+  btn.textContent = isDark ? "☀️" : "🌙";
+  btn.classList.toggle("active", isDark);
+}
+updateDarkModeBtn();
+
+function refreshBlindChipColors(){
+  document.querySelectorAll(".blind-chip.on").forEach(chip => {
+    const sec = sections.find(s => s.id === chip.dataset.section);
+    if (!sec) return;
+    const c = getColor(sec);
+    chip.style.background = c.bg;
+    chip.style.color = c.text;
+  });
+}
+
+document.getElementById("darkModeBtn").addEventListener("click", () => {
+  const isDark = document.body.classList.toggle("dark-mode");
+  try{ localStorage.setItem(DARK_KEY, isDark ? "1" : "0"); }catch(e){}
+  updateDarkModeBtn();
+  updateProgress();
+  refreshBlindChipColors();
+});
+
 document.getElementById("editModeBtn").addEventListener("click", () => {
   editMode = !editMode;
   document.body.classList.toggle("edit-mode", editMode);
@@ -1551,7 +1629,7 @@ function updateProgress(){
     }
 
     if (allDone){
-      applySectionColor(sec.id, successColor);
+      applySectionColor(sec.id, getSuccessColor());
     } else if (secDone){
       applySectionColor(sec.id, getColor(sec));
     } else {
