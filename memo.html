@@ -57,6 +57,7 @@
   .copy-all-btn:hover{ background:var(--hover); }
   .copy-all-btn.copied{ background:var(--text); color:#fff; border-color:var(--text); }
   .clear-all-btn{ font-size:11px; color:var(--text-sub); background:none; border:none; cursor:pointer; text-decoration:underline; }
+  .clear-all-btn.confirm-armed{ background:#E85D8C !important; color:#fff !important; text-decoration:none; padding:2px 8px; border-radius:4px; }
 
   .category-group{ margin-bottom:14px; }
   .category-title{
@@ -80,6 +81,17 @@
   .icon-btn.del:hover{ background:#FBE4E6; color:#B23B4A; }
 
   .empty-state{ text-align:center; padding:28px 0; color:var(--text-sub); font-size:12.5px; }
+
+  #appToast{
+    position:fixed; left:50%; bottom:20px; transform:translateX(-50%) translateY(10px);
+    background:var(--text); color:#fff; font-size:12.5px; padding:8px 16px; border-radius:20px;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:999; max-width:90%; text-align:center;
+  }
+  #appToast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  #copyFallback{
+    position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; opacity:0;
+  }
 </style>
 </head>
 <body>
@@ -116,6 +128,8 @@
 
   <div id="entryList"></div>
 </div>
+
+<textarea id="copyFallback" readonly tabindex="-1" aria-hidden="true"></textarea>
 
 <script>
 const STORAGE_KEY = "sPart_memo_log_v1";
@@ -154,6 +168,76 @@ function updatePreview(){
 
 function escapeHtml(s){
   return (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+// ---- 노션 임베드(iframe) 호환용 토스트/확인 유틸 ----
+// Notion 안에 iframe으로 임베드하면 navigator.clipboard 권한이나
+// window.confirm() 팝업이 보안 정책 때문에 막히는 경우가 많아서,
+// 팝업 없는 "두번 클릭해 확인" 방식 + document.execCommand 복사 폴백을 사용함.
+function showToast(message){
+  let toast = document.getElementById("appToast");
+  if (!toast){
+    toast = document.createElement("div");
+    toast.id = "appToast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+function confirmClick(btn, confirmLabel, onConfirm){
+  if (btn.dataset.confirmArmed === "1"){
+    clearTimeout(btn._confirmTimer);
+    delete btn.dataset.confirmArmed;
+    btn.textContent = btn.dataset.origLabel;
+    btn.classList.remove("confirm-armed");
+    onConfirm();
+    return;
+  }
+  btn.dataset.origLabel = btn.textContent;
+  btn.dataset.confirmArmed = "1";
+  btn.textContent = confirmLabel || "다시 클릭";
+  btn.classList.add("confirm-armed");
+  btn._confirmTimer = setTimeout(() => {
+    delete btn.dataset.confirmArmed;
+    btn.textContent = btn.dataset.origLabel;
+    btn.classList.remove("confirm-armed");
+  }, 2500);
+}
+
+function copyText(text){
+  if (!text){
+    showToast("복사할 내용이 없어요.");
+    return;
+  }
+  // 1차: Clipboard API 시도 (실패해도 조용히 폴백으로 넘어감)
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("복사되었어요 ✓");
+    }).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  const ta = document.getElementById("copyFallback");
+  ta.style.top = "0";
+  ta.style.left = "0";
+  ta.value = text;
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
+  ta.style.top = "-9999px";
+  ta.style.left = "-9999px";
+  window.getSelection().removeAllRanges();
+  showToast(ok ? "복사되었어요 ✓" : "이 환경에서는 자동 복사가 막혀 있어요. 새 탭에서 열어 복사해주세요.");
 }
 
 function render(){
@@ -216,17 +300,13 @@ function bindEntryEvents(){
   });
 }
 
-function copyText(text){
-  navigator.clipboard.writeText(text).catch(() => {});
-}
-
 document.getElementById("addBtn").addEventListener("click", () => {
   const examId = document.getElementById("f-examId").value.trim();
   const category = document.getElementById("f-category").value;
   const qnum = document.getElementById("f-qnum").value.trim();
   const content = document.getElementById("f-content").value.trim();
   const desc = document.getElementById("f-desc").value.trim();
-  if (!examId || !content){ alert("수험번호랑 내용은 꼭 입력해주세요."); return; }
+  if (!examId || !content){ showToast("수험번호랑 내용은 꼭 입력해주세요."); return; }
 
   entries.unshift({ id:genId(), examId, category, qnum, content, desc });
   saveEntries(entries);
@@ -244,16 +324,20 @@ document.getElementById("copyAllBtn").addEventListener("click", () => {
   const text = entries.map(formatEntry).join("\n");
   copyText(text);
   const btn = document.getElementById("copyAllBtn");
-  btn.textContent = "복사됨 ✓";
-  btn.classList.add("copied");
-  setTimeout(() => { btn.textContent = "전체 복사"; btn.classList.remove("copied"); }, 1500);
+  if (entries.length > 0){
+    btn.textContent = "복사됨 ✓";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "전체 복사"; btn.classList.remove("copied"); }, 1500);
+  }
 });
 
-document.getElementById("clearAllBtn").addEventListener("click", () => {
-  if (!confirm("기록된 특이사항을 전부 삭제할까요?")) return;
-  entries = [];
-  saveEntries(entries);
-  render();
+document.getElementById("clearAllBtn").addEventListener("click", (e) => {
+  if (entries.length === 0){ showToast("삭제할 기록이 없어요."); return; }
+  confirmClick(e.currentTarget, "다시 클릭(전체삭제)", () => {
+    entries = [];
+    saveEntries(entries);
+    render();
+  });
 });
 
 updatePreview();
